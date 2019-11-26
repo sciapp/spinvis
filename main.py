@@ -26,10 +26,10 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.ersteMalGedrueckt = True
 
         self.momentanerKameraVektor = np.array([20, 5, 5])
-
-        self.newUpV = np.array([0,0,1])
+        self.fokusPunkt = np.array([0.0 ,0.0 , 0.0])
+        self.newUpV = np.array([0.0,0.0,1.0])
+        self._mausX = 0
         self._mausY = 0
-        self._mausZ = 0
         self._radius = math.sqrt(2)
         self.d1Vektor = np.array([0.0, 0.0, 0.0])
         self.d2Vektor = np.array([0.0, 0.0, 0.0])
@@ -66,7 +66,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.setlightdirection(0, 50, 60)
 
         gr3.cameralookat(self.momentanerKameraVektor[0] , self.momentanerKameraVektor[1],  self.momentanerKameraVektor[2],
-                         0, 0, 0,
+                         self.fokusPunkt[0], self.fokusPunkt[1], self.fokusPunkt[2],
                          self.newUpV[0], self.newUpV[1], self.newUpV[2])
 
         if self._drawSpin:
@@ -91,46 +91,53 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def grCameraChange(self):
 
         gr3.cameralookat(self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2],
-                         0, 0, 0,
+                         self.fokusPunkt[0], self.fokusPunkt[1], self.fokusPunkt[2],
                          self.newUpV[0], self.newUpV[1], self.newUpV[2])
 
 
     def mousePressEvent(self, e):
-        self.d1Vektor[1] = ((self._mausY / (self.width()/2))-1)*(-1)
-        self.d1Vektor[2] = (self._mausZ / (self.height()/2))-1
-        if(self.d1Vektor[2]**2 + self.d1Vektor[1]**2 < 1):
-            self.d1Vektor[0] = self._radius**2 - self.d1Vektor[2]**2 - self.d1Vektor[1]**2
+
+        self._mausX = e.x()
+        self._mausY = self.height() - e.y()
+
+        self.d1Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
+        self.d1Vektor[1] = (self._mausY / (self.height() / 2)) - 1
+        if(self.d1Vektor[0]**2 + self.d1Vektor[1]**2 < 1):
+            self.d1Vektor[2] = self._radius**2 - self.d1Vektor[0]**2 - self.d1Vektor[1]**2
         else:
-            self.d1Vektor[0] = (self._radius / 2) / (math.sqrt(self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2))
+            self.d1Vektor[2] = (self._radius / 2) / (math.sqrt(self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2))
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
 
     def mouseMoveEvent(self, e):
-        self._mausY = e.x()
-        self._mausZ = e.y()
+        self._mausX = e.x()
+        self._mausY = self.height() - e.y()
+
         self.dreheKamera()
 
-        self._mausY = e.x()
-        self._mausZ = e.y()
-        self.d1Vektor[1] = ((self._mausY / (self.width() / 2)) - 1)*(-1)
-        self.d1Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
-        if self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2 < 1:
-            self.d1Vektor[0] = self._radius ** 2 - self.d1Vektor[2] ** 2 - self.d1Vektor[1] ** 2
+        self._mausX = e.x()
+        self._mausY = self.height() - e.y()
+        self.d1Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
+        self.d1Vektor[1] = (self._mausY / (self.height() / 2)) - 1
+        if self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2 < 1:
+            self.d1Vektor[2] = self._radius ** 2 - self.d1Vektor[0] ** 2 - self.d1Vektor[1] ** 2
         else:
-            self.d1Vektor[0] = (self._radius/2) / (math.sqrt(self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2))
+            self.d1Vektor[2] = (self._radius/2) / (math.sqrt(self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2))
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
     def dreheKamera(self):
         self.pVektor = np.array([self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]])
-        self.d2Vektor[1] = ((self._mausY / (self.width() / 2)) - 1)*(-1)
-        self.d2Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
-        if self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2 < 1:
-            self.d2Vektor[0] = self._radius ** 2 - self.d2Vektor[1] ** 2 - self.d2Vektor[2] ** 2
+        self.d2Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
+        self.d2Vektor[1] = (self._mausY / (self.height() / 2)) - 1
+        if self.d2Vektor[0] ** 2 + self.d2Vektor[1] ** 2 < 1:
+            self.d2Vektor[2] = self._radius ** 2 - self.d2Vektor[0] ** 2 - self.d2Vektor[1] ** 2
         else:
-            self.d2Vektor[0] = (self._radius/2) / (math.sqrt(self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2))
+            self.d2Vektor[2] = (self._radius/2) / (math.sqrt(self.d2Vektor[0] ** 2 + self.d2Vektor[1] ** 2))
         print(self.d2Vektor[0], self.d2Vektor[1], self.d2Vektor[2], self.width(), self.height())
+
+
 
         self.d1Vektor /= np.linalg.norm(self.d1Vektor)
         self.d2Vektor /= np.linalg.norm(self.d2Vektor)
@@ -138,15 +145,28 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         n = np.cross(self.d1Vektor, self.d2Vektor)
         dot = np.dot(self.d1Vektor, self.d2Vektor)
         if dot >= 1 - 1e-10:
+            print("bug")
             return
 
         winkel = np.arccos(dot)
 
+        fowardVektor = np.array([self.fokusPunkt[0] - self.momentanerKameraVektor[0],  self.fokusPunkt[1] - self.momentanerKameraVektor[1],  self.fokusPunkt[2] - self.momentanerKameraVektor[2]])
+        fowardVektor /= np.linalg.norm(fowardVektor)
+        negativfVektor = fowardVektor * -1
+        upNormiert = self.newUpV / np.linalg.norm(self.newUpV)
+
+
+        rightVektor = np.cross(fowardVektor, self.newUpV)
+        uVektor = np.cross((rightVektor/np.linalg.norm(rightVektor)), fowardVektor)
+        matrix = np.array([[rightVektor[0],rightVektor[1], rightVektor[2]], [uVektor[0], uVektor[1], uVektor[2]],
+                  [negativfVektor[0], negativfVektor[1], negativfVektor[2]]])
+
+        self.d1Vektor = np.matmul(matrix, self.d1Vektor)
+
+        self.d2Vektor = np.matmul(matrix, self.d2Vektor)
+
 
         self.newUpV = np.dot(self.rotation_matrix(n, winkel), self.newUpV)
-
-
-
         self.momentanerKameraVektor = np.dot(self.rotation_matrix(n, winkel), self.momentanerKameraVektor)
         self.update()
 
