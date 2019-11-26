@@ -4,10 +4,14 @@
 # d1Vekor ist der erste gezogene, d2Vektor ist der End Punkt des Zuges
 from PyQt5 import QtCore, QtGui, QtWidgets
 import gr3
-import gr
+# import gr
 import sys
 import math
 import numpy as np
+import os
+
+os.environ['GKS_WSTYPE'] = '381'
+
 
 helf = None
 mittelAtom = []
@@ -27,8 +31,8 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._mausY = 0
         self._mausZ = 0
         self._radius = math.sqrt(2)
-        self.d1Vektor = np.array([0,0,0])
-        self.d2Vektor = np.array([0,0,0])
+        self.d1Vektor = np.array([0.0, 0.0, 0.0])
+        self.d2Vektor = np.array([0.0, 0.0, 0.0])
     pass
 
     def initUI(self):
@@ -65,24 +69,25 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                          0, 0, 0,
                          self.newUpV[0], self.newUpV[1], self.newUpV[2])
 
-        gr.setviewport(0, 1, 0, 1)
+        # gr.setviewport(0, 1, 0, 1)
         if self._drawSpin:
             self.grDrawSpin(self.width(), self.height())
             self._drawSpin = False
 
 
     def grDrawSpin(self, xmax, ymax):
+        gr3.clear()
         gr3.drawspins(mittelAtom, richtungAtom,
               len(mittelAtom) * [(50.00, 100.00, 0.00)], 0.3, 0.1, 0.75, 2.00)
-        gr3.drawimage(0, self.width()*2, 0, self.height()*2,
-              3000, 3000, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        gr3.drawimage(0, self.width(), 0, self.height(),
+              self.width() * self.devicePixelRatio(), self.height() * self.devicePixelRatio(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
     def paintGL(self):
         gr3.usecurrentframebuffer()
 
         self.grCameraChange()
-        gr3.drawimage(0, self.width()*2, 0, self.height()*2,
-                          3000, 3000, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        gr3.drawimage(0, self.width() * self.devicePixelRatio(), 0, self.height() * self.devicePixelRatio(),
+                          self.width() * self.devicePixelRatio(), self.height() * self.devicePixelRatio(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
     def grCameraChange(self):
 
@@ -92,8 +97,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def mousePressEvent(self, e):
-        if(self.ersteMalGedrueckt):
-            self.pVektor = [self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]]
         self.d1Vektor[1] = (self._mausY / (self.width()/2))-1
         self.d1Vektor[2] = (self._mausZ / (self.height()/2))-1
         if(self.d1Vektor[2]**2 + self.d1Vektor[1]**2 < 1):
@@ -105,36 +108,30 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def mouseMoveEvent(self, e):
         self._mausY = e.x()
         self._mausZ = e.y()
-        if (self.ersteMalGedrueckt):
-            self.pVektor = [self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]]
-        self.d1Vektor[1] = (self._mausY / (self.width() / 2)) - 1
-        self.d1Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
-        if (self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2 < 1):
-            self.d1Vektor[0] = self._radius ** 2 - self.d1Vektor[2] ** 2 - self.d1Vektor[1] ** 2
+        self.dreheKamera()
 
         self._mausY = e.x()
         self._mausZ = e.y()
-        self.dreheKamera()
+        self.d1Vektor[1] = (self._mausY / (self.width() / 2)) - 1
+        self.d1Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
+        if self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2 < 1:
+            self.d1Vektor[0] = self._radius ** 2 - self.d1Vektor[2] ** 2 - self.d1Vektor[1] ** 2
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
     def dreheKamera(self):
+        self.pVektor = np.array([self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]])
         self.d2Vektor[1] = (self._mausY / (self.width() / 2)) - 1
         self.d2Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
-        if (self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2 < 1):
+        if self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2 < 1:
             self.d2Vektor[0] = self._radius ** 2 - self.d2Vektor[1] ** 2 - self.d2Vektor[2] ** 2
 
-        d1Betrag = np.linalg.norm(self.d1Vektor);
-        self.d1Vektor[0] /= d1Betrag
-        self.d1Vektor[1] /= d1Betrag
-        self.d1Vektor[2] /= d1Betrag
-
-        d2Betrag = np.linalg.norm(self.d2Vektor);
-        self.d2Vektor[0] /= d2Betrag
-        self.d2Vektor[1] /= d2Betrag
-        self.d2Vektor[2] /= d2Betrag
+        self.d1Vektor /= np.linalg.norm(self.d1Vektor)
+        self.d2Vektor /= np.linalg.norm(self.d2Vektor)
 
         n = np.cross(self.d1Vektor, self.d2Vektor)
         dot = np.dot(self.d1Vektor, self.d2Vektor)
+        if dot >= 1 - 1e-10:
+            return
 
         winkel = np.arccos(dot)
 
