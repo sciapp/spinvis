@@ -69,7 +69,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                          0, 0, 0,
                          self.newUpV[0], self.newUpV[1], self.newUpV[2])
 
-        # gr.setviewport(0, 1, 0, 1)
         if self._drawSpin:
             self.grDrawSpin(self.width(), self.height())
             self._drawSpin = False
@@ -97,10 +96,13 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def mousePressEvent(self, e):
-        self.d1Vektor[1] = (self._mausY / (self.width()/2))-1
+        self.d1Vektor[1] = ((self._mausY / (self.width()/2))-1)*(-1)
         self.d1Vektor[2] = (self._mausZ / (self.height()/2))-1
         if(self.d1Vektor[2]**2 + self.d1Vektor[1]**2 < 1):
             self.d1Vektor[0] = self._radius**2 - self.d1Vektor[2]**2 - self.d1Vektor[1]**2
+        else:
+            self.d1Vektor[0] = (self._radius / 2) / (math.sqrt(self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2))
+        print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
@@ -112,18 +114,23 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
         self._mausY = e.x()
         self._mausZ = e.y()
-        self.d1Vektor[1] = (self._mausY / (self.width() / 2)) - 1
+        self.d1Vektor[1] = ((self._mausY / (self.width() / 2)) - 1)*(-1)
         self.d1Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
         if self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2 < 1:
             self.d1Vektor[0] = self._radius ** 2 - self.d1Vektor[2] ** 2 - self.d1Vektor[1] ** 2
+        else:
+            self.d1Vektor[0] = (self._radius/2) / (math.sqrt(self.d1Vektor[2] ** 2 + self.d1Vektor[1] ** 2))
         print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
 
     def dreheKamera(self):
         self.pVektor = np.array([self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]])
-        self.d2Vektor[1] = (self._mausY / (self.width() / 2)) - 1
+        self.d2Vektor[1] = ((self._mausY / (self.width() / 2)) - 1)*(-1)
         self.d2Vektor[2] = (self._mausZ / (self.height() / 2)) - 1
         if self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2 < 1:
             self.d2Vektor[0] = self._radius ** 2 - self.d2Vektor[1] ** 2 - self.d2Vektor[2] ** 2
+        else:
+            self.d2Vektor[0] = (self._radius/2) / (math.sqrt(self.d2Vektor[2] ** 2 + self.d2Vektor[1] ** 2))
+        print(self.d2Vektor[0], self.d2Vektor[1], self.d2Vektor[2], self.width(), self.height())
 
         self.d1Vektor /= np.linalg.norm(self.d1Vektor)
         self.d2Vektor /= np.linalg.norm(self.d2Vektor)
@@ -134,6 +141,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             return
 
         winkel = np.arccos(dot)
+
 
         self.newUpV = np.dot(self.rotation_matrix(n, winkel), self.newUpV)
 
