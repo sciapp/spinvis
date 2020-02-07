@@ -16,65 +16,56 @@ def rotation_matrix(axis, theta):
 
 
 
-def testUmgebung(x,y,z):
-    d1Vektor = np.array([50., 10., 5.])
-    d2Vektor = np.array([0., 10., 5.])
+def testUmgebung(maus1X, maus1Y, maus2X, maus2Y):
+    radius = 2
+    height = 500
+    width = 500
+    momentanerKameraVektor = np.array([1, 1, 2])
+    oldUpV = np.array([0, 0, 1])
+
+    PaVektor = [0,0,0]
+    PcVektor = [0,0,0]
+
+    PaVektor[0] = (maus1X / (width / 2)) - 1
+    PaVektor[1] = (maus1Y / (height / 2)) - 1
+
+    if (PaVektor[0] ** 2 + PaVektor[1] ** 2 <= 2):
+        PaVektor[2] = math.sqrt(radius ** 2 - PaVektor[0] ** 2 - PaVektor[1] ** 2)
+    else:
+        PaVektor[2] = 0
+        koeff = (radius / 2) / (math.sqrt(PaVektor[0] ** 2 + PaVektor[1] ** 2))
+        PaVektor[0] /= koeff
+        PaVektor[1] /= koeff
+
+    PcVektor[0] = (maus2X / (width / 2)) - 1
+    PcVektor[1] = (maus2Y / (height / 2)) - 1
+
+    if (PcVektor[0] ** 2 + PcVektor[1] ** 2 <= 2):
+        PcVektor[2] = math.sqrt(radius ** 2 - PcVektor[0] ** 2 - PcVektor[1] ** 2)
+    else:
+        PcVektor[2] = 0
+        koeff = (radius / 2) / (math.sqrt(PcVektor[0] ** 2 + PcVektor[1] ** 2))
+        PcVektor[0] /= koeff
+        PcVektor[1] /= koeff
 
 
-    d1Norm = np.linalg.norm(d1Vektor)
-    d1Vektor[0] /= d1Norm
-    d1Vektor[1] /= d1Norm
-    d1Vektor[2] /= d1Norm
-
-    d2Norm = np.linalg.norm(d2Vektor)
-    d2Vektor[0] /= d2Norm
-    d2Vektor[1] /= d2Norm
-    d2Vektor[2] /= d2Norm
-
-    newUpV = np.array([-1., 1., 0.])
-
-    fowardVektor = np.array([0., 0., 1.])
-
-    negativfVektor = fowardVektor * -1
-
-    upNorm = np.linalg.norm(newUpV)
-    newUpV[0] /= upNorm
-    newUpV[1] /= upNorm
-    newUpV[2] /= upNorm
 
 
-    rightVektor = [1.,1.,0.]
-    uVektor = np.cross((rightVektor/np.linalg.norm(rightVektor)), fowardVektor)
-    matrix = np.array([rightVektor, uVektor, negativfVektor])
 
-    print(matrix)
-    d1Vektor = np.matmul(matrix.T, d1Vektor)
+    u = np.cross(PaVektor, PcVektor)
+    skalar = np.dot(PaVektor, PcVektor)
+    norm = np.linalg.norm(u)
+    theta = 1 / (np.arctan(skalar / norm))
 
-    d2Vektor = np.matmul(matrix.T, d2Vektor)
-
-    d1Norm = np.linalg.norm(d1Vektor)
-    d1Vektor[0] /= d1Norm
-    d1Vektor[1] /= d1Norm
-    d1Vektor[2] /= d1Norm
-
-    d2Norm = np.linalg.norm(d2Vektor)
-    d2Vektor[0] /= d2Norm
-    d2Vektor[1] /= d2Norm
-    d2Vektor[2] /= d2Norm
-
-    print("d1", d1Vektor, "d2", d2Vektor)
-
-    n = np.cross(d1Vektor, d2Vektor)
-    dot = np.dot(d1Vektor, d2Vektor)
-    print("dot", dot)
-    """if dot >= 1 - 1e-3:
-        print("bug")
-        exit(1)"""
-
-    winkel = np.arccos(dot)
-
-    print("Neuer UpVektor" , np.dot(rotation_matrix(n, winkel), newUpV))
-    print("Neue Kamera Position" , np.dot(rotation_matrix(n, winkel), np.array([x, y, z])))
+    if (math.sqrt(np.dot(u, u) != 0)):
+        newUpV = np.dot(rotation_matrix(u, theta), oldUpV)
+        momentanerKameraVektor = np.dot(rotation_matrix(u, theta), momentanerKameraVektor)
 
 
-testUmgebung(30, 30, 30)
+    print("Pa", PaVektor, "Pc", PcVektor)
+
+    print("Neuer UpVektor" , np.dot(rotation_matrix(u, theta), newUpV))
+    print("Neue Kamera Position" , momentanerKameraVektor[0], momentanerKameraVektor[1],momentanerKameraVektor[2])
+
+
+testUmgebung(250.0,250.0, 251.0, 250.0 )
