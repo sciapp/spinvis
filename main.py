@@ -25,14 +25,14 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.initUI()
         self.ersteMalGedrueckt = True
 
-        self.momentanerKameraVektor = np.array([20, 5, 5])
+        self.momentanerKameraVektor = np.array([20.0, 5.0, 5.0])
         self.fokusPunkt = np.array([0.0 ,0.0 , 0.0])
         self.newUpV = np.array([0.0,0.0,1.0])
-        self._mausX = 0
-        self._mausY = 0
-        self._radius = math.sqrt(2)
-        self.d1Vektor = np.array([0.0, 0.0, 0.0])
-        self.d2Vektor = np.array([0.0, 0.0, 0.0])
+        self._mausX = 0.0
+        self._mausY = 0.0
+        self._radius = math.sqrt(2.0)
+        self.PaVektor = np.array([0.0, 0.0, 0.0])
+        self.PcVektor = np.array([0.0, 0.0, 0.0])
     pass
 
     def initUI(self):
@@ -78,9 +78,9 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.clear()
         gr3.drawspins(mittelAtom, richtungAtom,
               len(mittelAtom) * [(50.00, 100.00, 0.00)], 0.3, 0.1, 0.75, 2.00)
-        gr3.drawimage(0, self.width(), 0, self.height(),
+        gr3.drawimage(0, self.width()*self.devicePixelRatio(), 0, self.height()*self.devicePixelRatio(),
               self.width() * self.devicePixelRatio(), self.height() * self.devicePixelRatio(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
-
+        self.update()
     def paintGL(self):
         gr3.usecurrentframebuffer()
 
@@ -100,87 +100,81 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._mausX = e.x()
         self._mausY = self.height() - e.y()
 
-        self.d1Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
-        self.d1Vektor[1] = (self._mausY / (self.height() / 2)) - 1
-        if(self.d1Vektor[0]**2 + self.d1Vektor[1]**2 < 1):
-            self.d1Vektor[2] = self._radius**2 - self.d1Vektor[0]**2 - self.d1Vektor[1]**2
-        else:
-            self.d1Vektor[2] = (self._radius / 2) / (math.sqrt(self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2))
-        print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
+        self.PaVektor[0] = ((self._mausX / (self.width() / 2)) - 1)
+        self.PaVektor[1] = (self._mausY / (self.height() / 2)) - 1
 
-        print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
+
+        if(self.PaVektor[0]**2 + self.PaVektor[1]**2 <= 2):
+            self.PaVektor[2] = math.sqrt(self._radius ** 2 - self.PaVektor[0] ** 2 - self.PaVektor[1] ** 2)
+        else:
+            self.PaVektor[2] = 0
+            koeff =(math.sqrt(self.PaVektor[0] ** 2 + self.PaVektor[1] ** 2))
+            self.PaVektor[0] *= 2/koeff
+            self.PaVektor[1] *= 2/koeff
+        print(self.PaVektor[0], self.PaVektor[1], self.PaVektor[2], self.width(), self.height())
+
+        print(self.PaVektor[0], self.PaVektor[1], self.PaVektor[2], self.width(), self.height())
+
+
+
 
 
     def mouseMoveEvent(self, e):
-        self._mausX = e.x()
-        self._mausY = self.height() - e.y()
 
         self.dreheKamera()
 
         self._mausX = e.x()
         self._mausY = self.height() - e.y()
-        self.d1Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
-        self.d1Vektor[1] = (self._mausY / (self.height() / 2)) - 1
-        if self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2 < 1:
-            self.d1Vektor[2] = self._radius ** 2 - self.d1Vektor[0] ** 2 - self.d1Vektor[1] ** 2
+        self.PaVektor[0] = ((self._mausX / (self.width() / 2)) - 1)
+        self.PaVektor[1] = (self._mausY / (self.height() / 2)) - 1
+        if self.PaVektor[0] ** 2 + self.PaVektor[1] ** 2 < 2:
+            self.PaVektor[2] = math.sqrt(self._radius ** 2 - self.PaVektor[0] ** 2 - self.PaVektor[1] ** 2)
         else:
-            self.d1Vektor[2] = (self._radius/2) / (math.sqrt(self.d1Vektor[0] ** 2 + self.d1Vektor[1] ** 2))
-        print(self.d1Vektor[0], self.d1Vektor[1], self.d1Vektor[2], self.width(), self.height())
+            self.PaVektor[2] = 0
+            koeffi = (math.sqrt(self.PaVektor[0] ** 2 + self.PaVektor[1] ** 2))
+            self.PaVektor[0] *= 2 / koeffi
+            self.PaVektor[1] *= 2 / koeffi
+        self.update()
+
+        print(self.PaVektor[0], self.PaVektor[1], self.PaVektor[2], self.width(), self.height())
+
+
+    def recalculate_up_vector(self, forward_vector, up_vector):
+        right_vector = np.cross(forward_vector, up_vector)
+        up_vector = np.cross(right_vector, forward_vector)
+        return up_vector / np.linalg.norm(up_vector)
+
+
 
     def dreheKamera(self):
-        self.pVektor = np.array([self.momentanerKameraVektor[0], self.momentanerKameraVektor[1], self.momentanerKameraVektor[2]])
-        self.d2Vektor[0] = ((self._mausX / (self.width() / 2)) - 1)
-        self.d2Vektor[1] = (self._mausY / (self.height() / 2)) - 1
-        if self.d2Vektor[0] ** 2 + self.d2Vektor[1] ** 2 < 1:
-            self.d2Vektor[2] = self._radius ** 2 - self.d2Vektor[0] ** 2 - self.d2Vektor[1] ** 2
-        else:
-            self.d2Vektor[2] = (self._radius/2) / (math.sqrt(self.d2Vektor[0] ** 2 + self.d2Vektor[1] ** 2))
-        print(self.d2Vektor[0], self.d2Vektor[1], self.d2Vektor[2], self.width(), self.height())
+
+        self.newUpV = self.recalculate_up_vector(self.momentanerKameraVektor, self.newUpV)
 
 
+        skalar = np.dot(self.PaVektor, self.PcVektor)
+        if skalar:
+            u = np.cross(self.PaVektor, self.PcVektor)
+            norm = np.linalg.norm(u)
+            theta = np.arctan(norm / skalar)
 
-        self.d1Vektor /= np.linalg.norm(self.d1Vektor)
-        self.d2Vektor /= np.linalg.norm(self.d2Vektor)
-
-        n = np.cross(self.d1Vektor, self.d2Vektor)
-        dot = np.dot(self.d1Vektor, self.d2Vektor)
-        if dot >= 1 - 1e-10:
-            print("bug")
-            return
-
-        winkel = np.arccos(dot)
-
-        fowardVektor = np.array([self.fokusPunkt[0] - self.momentanerKameraVektor[0],  self.fokusPunkt[1] - self.momentanerKameraVektor[1],  self.fokusPunkt[2] - self.momentanerKameraVektor[2]])
-        fowardVektor /= np.linalg.norm(fowardVektor)
-        negativfVektor = fowardVektor * -1
-        upNormiert = self.newUpV / np.linalg.norm(self.newUpV)
-
-
-        rightVektor = np.cross(fowardVektor, self.newUpV)
-        uVektor = np.cross((rightVektor/np.linalg.norm(rightVektor)), fowardVektor)
-        matrix = np.array([[rightVektor[0],rightVektor[1], rightVektor[2]], [uVektor[0], uVektor[1], uVektor[2]],
-                  [negativfVektor[0], negativfVektor[1], negativfVektor[2]]])
-
-        self.d1Vektor = np.matmul(matrix, self.d1Vektor)
-
-        self.d2Vektor = np.matmul(matrix, self.d2Vektor)
-
-
-        self.newUpV = np.dot(self.rotation_matrix(n, winkel), self.newUpV)
-        self.momentanerKameraVektor = np.dot(self.rotation_matrix(n, winkel), self.momentanerKameraVektor)
+            if norm:
+                print("Somethings happenin")
+                self.newUpV = np.dot(self.rotation_matrix(u, theta), self.newUpV)
+                self.momentanerKameraVektor = np.dot(self.rotation_matrix(u, theta), self.momentanerKameraVektor)
         self.update()
 
 
     def rotation_matrix(self, axis, theta):
         axis = np.asarray(axis)
-        axis = axis / math.sqrt(np.dot(axis, axis))
-        a = math.cos(theta / 2.0)
-        b, c, d = -axis * math.sin(theta / 2.0)
-        aa, bb, cc, dd = a * a, b * b, c * c, d * d
-        bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-        return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+        if(math.sqrt(np.dot(axis, axis)) !=0):
+            axis = axis / math.sqrt(np.dot(axis, axis))
+            a = math.cos(theta / 2.0)
+            b, c, d = -axis * math.sin(theta / 2.0)
+            aa, bb, cc, dd = a * a, b * b, c * c, d * d
+            bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+            return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                        [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                        [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 
 def main():
