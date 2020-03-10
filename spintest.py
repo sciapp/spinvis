@@ -13,7 +13,7 @@ from PyQt5.QtGui import QPixmap
 import numpy as np
 linksdreh = 1
 hochdreh = 1
-kamerasteuerung = False
+
 
 
     #Eingabe der Datein aus tet.txt
@@ -39,13 +39,55 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
         self.setLayout(self.hbox)
 
     def keyPressEvent(self, QKeyEvent):
-        global linksdreh, kamerasteuerung
-        kamerasteuerung = True
+        global linksdreh, hochdreh
         print("Knopf gedrueckt")
         print(QKeyEvent.key())
-        if QKeyEvent.key() == 70:
-            linksdreh += 0.1
-        
+        if QKeyEvent.key() == QtCore.Qt.Key_H:
+            self.m.fokusPunkt[0] += 1
+            test.set_focus_point(self.m.fokusPunkt)
+        if QKeyEvent.key() == QtCore.Qt.Key_G:
+            self.m.fokusPunkt[0] -= 1
+            test.set_focus_point(self.m.fokusPunkt)
+        if QKeyEvent.key() == QtCore.Qt.Key_Right:
+            if linksdreh < 12.5:
+                linksdreh +=0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                print("Wuhuuuu")
+                self.w.k.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
+            else:
+                linksdreh += 0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.leftslid.setValue(0)
+        if QKeyEvent.key() == QtCore.Qt.Key_Left:
+            if linksdreh > 6.3:
+                linksdreh -=0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
+            else:
+                linksdreh -= 0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.leftslid.setValue(100)
+        if QKeyEvent.key() == QtCore.Qt.Key_Up:
+            print(hochdreh)
+            if hochdreh < 6.2:
+                hochdreh += 0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
+            else:
+                hochdreh += 0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.upslid.setValue(0)
+        if QKeyEvent.key() == QtCore.Qt.Key_Down:
+            print(hochdreh)
+            if hochdreh > 3.2:
+                hochdreh -=0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.upslid.setValue(100*(hochdreh/(math.pi)+1))
+            else:
+                hochdreh -= 0.1
+                test.grCameraGuiChange(hochdreh, linksdreh)
+                self.w.k.upslid.setValue(100)
+
         self.m.update()
 
 
@@ -61,19 +103,17 @@ class GUIWindow(QtWidgets.QWidget):                                     #GUI Win
         self.k = SliderWindow(self._glwindow)                           #Slider Window fuer Kamerasteuerung per Slider
         self.t = ScreenWindow(self._glwindow)                           #Screenwindow fuer Screenshot steuerung
         self.l = LadeWindow(self._glwindow)
+        self.o = ColorWindow(self._glwindow)
         self.vbox = QVBoxLayout()
         self.vbox.addStretch(0.5)
         self.vbox.addWidget(self.k)
         self.vbox.addWidget(self.t)
         self.vbox.addWidget(self.l)
+        self.vbox.addWidget(self.o)
         self.vbox.addStretch(0.5)
         self.setLayout(self.vbox)
         pass
 
-    def mousePressEvent(self, QMouseEvent):
-        global kamerasteuerung
-        kamerasteuerung = True
-        print("Auf Gui geklickt")
 
 class LadeWindow(QtWidgets.QWidget):
     def __init__(self,glwindow,  *args, **kwargs):
@@ -106,6 +146,43 @@ class LadeWindow(QtWidgets.QWidget):
             self._glwindow.data_path = eingabe
             self._glwindow.setDataSet()
 
+class ColorWindow(QtWidgets.QWidget):
+    def __init__(self,glwindow,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._camera_angle = 0.0
+        self._glwindow = glwindow                                       #Uebernahme des GLWindows zur Slidersteuerung
+        self.initUI()
+        pass
+
+    def initUI(self):
+        self.colorBox = QHBoxLayout()
+        self.color_label = QLabel()
+        self.color_label.setText("Waehlen sie eine Farbe")
+        self.bg_color_button = QPushButton('Fuer den Hintergrund', self)
+        self.bg_color_button.setFixedSize(100, 30)
+        self.bg_color_button.clicked.connect(self.get_bg_color)
+        self.spin_color_button = QPushButton('Fuer die Pfeile', self)
+        self.spin_color_button.setFixedSize(100, 30)
+        self.spin_color_button.clicked.connect(self.get_spin_color)
+        self.colorDialog = QtWidgets.QColorDialog()
+        self.colorBox.addWidget(self.color_label)
+        self.colorBox.addWidget(self.bg_color_button)
+        self.colorBox.addWidget(self.spin_color_button)
+        self.setLayout(self.colorBox)
+
+    def get_bg_color(self):
+        bg_rgb = [c * 255 for c in test.bg_rgb]
+        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*bg_rgb))
+        if selectedColor.isValid():
+            self._glwindow.set_bg_color(selectedColor.getRgb())
+
+    def get_spin_color(self):
+        spin_rgb = [c * 255 for c in test.spin_rgb]
+        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*spin_rgb))
+        if selectedColor.isValid():
+            self._glwindow.set_spin_color(selectedColor.getRgb())
+
+
 class ScreenWindow(QtWidgets.QWidget):
     def __init__(self,glwindow,  *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,11 +211,12 @@ class ScreenWindow(QtWidgets.QWidget):
         self.fileVBox = QVBoxLayout()                                   #Filebox beinhaltet die Eingabezeile und das Label
 
         self.fileName = QLineEdit()
+
         self.fileLabel = QLabel()
         self.fileLabel.setText("Dateiname:")
 
         self.fileVBox.addWidget(self.fileLabel)
-       # self.fileVBox.addWidget(self.fileName)
+        self.fileVBox.addWidget(self.fileName)
 
 
         self.checkboxbox = QHBoxLayout()                                #Checkboxbox beinhaltet 2 HBoxen, die je ein Label und ein Radiobutton haben
@@ -237,20 +315,16 @@ class SliderWindow(QtWidgets.QWidget):
         self.setLayout(self.hbox)
 
     def changeUpValue(self, value):
-        global hochdreh, kamerasteuerung                                                 #Globale Variable hochdreh wird benutzt und veraendert
-        kamerasteuerung = True
-        hochdreh = ((value/100)+1)*math.pi                              #Setzt den Wert des Sliders auf das Pandan zwischen 0 und pi fuer die Kugelformel
+        global hochdreh, linksdreh                                               #Globale Variable hochdreh wird benutzt und veraendert
+        hochdreh = ((value/100)-1)*math.pi                              #Setzt den Wert des Sliders auf das Pandan zwischen 0 und pi fuer die Kugelformel
+        test.grCameraGuiChange(hochdreh, linksdreh)
         self._glwindow.update()                                         #Update des Fensters um aenderung anzuszeigen
-        #print("Up")
-
 
     def changeLeftValue(self, value):
-        global linksdreh, kamerasteuerung                                                #Globale Variable linskdreh wird benutzt und veraendert
-        kamerasteuerung = True
+        global linksdreh, hochdreh                                         #Globale Variable linskdreh wird benutzt und veraendert
         linksdreh = ((value/100)+1)*math.pi*2                           #Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
+        test.grCameraGuiChange(hochdreh, linksdreh)
         self._glwindow.update()                                         #Update des Fensters um aenderung anzuszeigen
-        #print("left")
-
 
 class GLWidget(QtWidgets.QOpenGLWidget):
     def __init__(self, *args, **kwargs):
@@ -304,21 +378,23 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def paintGL(self):
-        global linksdreh, hochdreh, kamerasteuerung
-        tilt = linksdreh
-        azimuth = hochdreh
+
         gr3.usecurrentframebuffer()
-        print(kamerasteuerung)
-        if kamerasteuerung:
-            test.grCameraGuiChange(azimuth, tilt)                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
-        else:
-            test.grCameraArcBallChange(self.momentanerKameraVektor)
         if self._exportScreen:                                          #Screenshot und setzen von export screen auf False fuer neuen Durchlauf
             test.ScreenShoot(self.screendateiname, "png", 500, 500)
             self._exportScreen = False
         gr3.drawimage(0, 1000, 0, 1000,
                       self.devicePixelRatio()*1000, self.devicePixelRatio()*1000, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
+    def guiCameraChange(self):
+        global linksdreh, hochdreh
+        test.grCameraGuiChange(hochdreh,linksdreh)
+        self.update()
+
+
+    def trackballCameraChange(self):
+        test.grCameraArcBallChange(self.momentanerKameraVektor)
+        self.update()
 
     def rotation_matrix(self, axis, theta):
         axis = np.array(axis)
@@ -351,8 +427,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             list[2] = self._radius ** 2 / (2 * (list[0] ** 2 + list[1] ** 2))
 
     def mousePressEvent(self, e):
-        global kamerasteuerung
-        kamerasteuerung = False
         print("Auf gl geklickt")
         self._mausX = e.x()
         self._mausY = self.height() - e.y()
@@ -404,6 +478,17 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
         self.repaint()
 
+    def set_bg_color(self, rgb_color):
+        print("Von gui her", rgb_color)
+        test.set_background_color(rgb_color)
+        self.update()
+        pass
+
+    def set_spin_color(self, rgb_color):
+        print("Von gui her", rgb_color)
+        test.set_spin_color(rgb_color, self.devicePixelRatio())
+        self.update()
+        pass
 
 
 
