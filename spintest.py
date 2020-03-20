@@ -5,6 +5,7 @@ import gr3
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import test
+import koor
 from PyQt5.QtWidgets import (QWidget,
                              QHBoxLayout,QRadioButton ,QButtonGroup,QLineEdit, QVBoxLayout, QApplication, QPushButton, QLabel, QSlider)     #Import der versch. QtWidgets
 from PyQt5.QtCore import Qt
@@ -28,67 +29,72 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
 
     def initUI(self):
         self.setWindowTitle('PyQt5/GR3 molecule plot example')
-        self.m = GLWidget()                                             #Erstellung der Zwei zentralen Fenster: das GLWidget m, mit der 3D Darstellung
-        self.w = GUIWindow(self.m)                                      #Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
-        self.m.setMinimumSize(1000, 1000)
-        self.hbox = QHBoxLayout()                                       #Horizontales Layout umd beides nebeneinander zulegen
-        self.hbox.addWidget(self.m)
-        self.hbox.addWidget(self.w)
-        self.hbox.setContentsMargins(0, 0, 0, 0)
-        self.hbox.setSpacing(0)                                         #Abstand 0 setzen um beides direkt nebeneinander zu haben
-        self.setLayout(self.hbox)
+        self.draw_window = GLWidget()                                             #Erstellung der Zwei zentralen Fenster: das GLWidget m, mit der 3D Darstellung
+        self.gui_window = GUIWindow(self.draw_window)                                      #Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
+        self.draw_window.setMinimumSize(500, 500)
+        self.gui_window.setMaximumSize(500,500)
+        self.complete_window_hbox = QHBoxLayout()                                       #Horizontales Layout umd beides nebeneinander zulegen
+        self.complete_window_hbox.addWidget(self.draw_window)
+        self.complete_window_hbox.addWidget(self.gui_window)
+        self.complete_window_hbox.setContentsMargins(0, 0, 0, 0)
+        self.complete_window_hbox.setSpacing(0)                                         #Abstand 0 setzen um beides direkt nebeneinander zu haben
+        self.setLayout(self.complete_window_hbox)
+        #self.w.l.lade_datei()
 
     def keyPressEvent(self, QKeyEvent):
         global linksdreh, hochdreh
         print("Knopf gedrueckt")
         print(QKeyEvent.key())
-        if QKeyEvent.key() == QtCore.Qt.Key_H:
-            self.m.fokusPunkt[0] += 1
-            test.set_focus_point(self.m.fokusPunkt)
+        if QKeyEvent.key() == QtCore.Qt.Key_H:                                                                          #Tastatur-Abfrage, Pfeiltasten für Kamerasteuerung ähnlich zu den Slidern, H und G zum Zoomen in perspektive und A/B zum zoomen in orthograpisch
+            self.draw_window.focus_point[0] += 1
+            test.set_focus_point(self.draw_window.focus_point)
         if QKeyEvent.key() == QtCore.Qt.Key_G:
-            self.m.fokusPunkt[0] -= 1
-            test.set_focus_point(self.m.fokusPunkt)
+            self.draw_window.focus_point[0] -= 1
+            test.set_focus_point(self.draw_window.focus_point)
         if QKeyEvent.key() == QtCore.Qt.Key_Right:
             if linksdreh < 12.5:
                 linksdreh +=0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
                 print("Wuhuuuu")
-                self.w.k.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
+                self.gui_window.slide_win.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
             else:
                 linksdreh += 0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.leftslid.setValue(0)
+                self.gui_window.slide_win.leftslid.setValue(0)
         if QKeyEvent.key() == QtCore.Qt.Key_Left:
             if linksdreh > 6.3:
                 linksdreh -=0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
+                self.gui_window.slide_win.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
             else:
                 linksdreh -= 0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.leftslid.setValue(100)
+                self.gui_window.slide_win.leftslid.setValue(100)
         if QKeyEvent.key() == QtCore.Qt.Key_Up:
             print(hochdreh)
             if hochdreh < 6.2:
                 hochdreh += 0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
+                self.gui_window.slide_win.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
             else:
                 hochdreh += 0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.upslid.setValue(0)
+                self.gui_window.slide_win.upslid.setValue(0)
         if QKeyEvent.key() == QtCore.Qt.Key_Down:
             print(hochdreh)
             if hochdreh > 3.2:
                 hochdreh -=0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.upslid.setValue(100*(hochdreh/(math.pi)+1))
+                self.gui_window.slide_win.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
             else:
                 hochdreh -= 0.1
                 test.grCameraGuiChange(hochdreh, linksdreh)
-                self.w.k.upslid.setValue(100)
-
-        self.m.update()
+                self.gui_window.slide_win.upslid.setValue(100)
+        if QKeyEvent.key() == QtCore.Qt.Key_A:
+            test.zoom_in_or_out_orthographic(0.1)
+        if QKeyEvent.key() == QtCore.Qt.Key_B:
+            test.zoom_in_or_out_orthographic(-0.1)
+        self.draw_window.update()
 
 
 class GUIWindow(QtWidgets.QWidget):                                     #GUI Window setzt sich aus einzelnen Windows die vertikal unteieinander gelegt wurden zusammen
@@ -100,19 +106,87 @@ class GUIWindow(QtWidgets.QWidget):                                     #GUI Win
         pass
 
     def initUI(self):
-        self.k = SliderWindow(self._glwindow)                           #Slider Window fuer Kamerasteuerung per Slider
-        self.t = ScreenWindow(self._glwindow)                           #Screenwindow fuer Screenshot steuerung
-        self.l = LadeWindow(self._glwindow)
-        self.o = ColorWindow(self._glwindow)
+        self.pgroup = QtWidgets.QGroupBox()
+        self.p_win = ProjectionWindow(self._glwindow)
+        self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
+        self.screen_win = ScreenWindow(self._glwindow)                           #Screen Boxlayout fuer Screenshot steuerung
+        self.l_win = LadeWindow(self._glwindow)                                     #Lade Boxlayout um neuen Datensatz zu laden
+        self.c_win = ColorWindow(self._glwindow)                                    #Color Boxlayout um Farbe für Hintergrund und Spins zu setzen
         self.vbox = QVBoxLayout()
-        self.vbox.addStretch(0.5)
-        self.vbox.addWidget(self.k)
-        self.vbox.addWidget(self.t)
-        self.vbox.addWidget(self.l)
-        self.vbox.addWidget(self.o)
+        self.vbox.addWidget(self.p_win)
+        self.vbox.addWidget(self.slide_win)
+        self.vbox.addWidget(self.screen_win)
+        self.vbox.addWidget(self.l_win)
+        self.vbox.addWidget(self.c_win)
         self.vbox.addStretch(0.5)
         self.setLayout(self.vbox)
         pass
+
+
+class ProjectionWindow(QtWidgets.QWidget):                              #
+    def __init__(self,glwindow,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._camera_angle = 0.0
+        self._glwindow = glwindow                                       #Uebergabe des GLwindows als lokale private variable
+        self.initUI()
+        pass
+
+    def initUI(self):
+        self.projection_box = QHBoxLayout()                                                                             #Eine grosse HBox die ein Label und eine weite HBox beinhaltet. In der sind 2 VBoxLayouts mit jeweils einem HLabel und einem RadioButton
+        #self.projection_box.addStretch(0.5)
+        self.projection_label = QtWidgets.QLabel()
+        self.projection_label.setText("Waelen sie eine Perspektive")                                                    #Pop-Up das Hilftext anzeigt
+        self.projection_label.setToolTip("The projectiontype  defines how a 3D object is pictured on a 2D screen. \n"
+                                         "The parallel projection is simulating the effects of the real world. Objects \n"
+                                         "farther away appear smaller. The orthographic projection depicts every object \n"
+                                         "with the same size. It may reveal patterns in the data, that would else remain hidden \n")
+
+        self.checkboxbox = QHBoxLayout()  # Checkboxbox beinhaltet 2 HBoxen, die je ein Label und ein Radiobutton haben
+
+        self.perspective_box = QVBoxLayout()
+
+        self.perspective_check = QRadioButton()
+
+        self.perspective_label = QLabel()
+        self.perspective_label.setText("Perspective")
+        #self.perspective_check.toggle()
+
+
+        self.perspective_box.addWidget(self.perspective_label)
+        self.perspective_box.addWidget(self.perspective_check)
+
+        self.checkboxmanagment = QButtonGroup()  # Mit der Buttongroup werden die Radiobuttons auf exklusiv gestellt
+
+        self.orthographic_box = QVBoxLayout()
+
+        self.orthographic_check = QRadioButton()
+        self.orthographic_check.setChecked(True)
+        self.orthographic_label = QLabel()
+        self.orthographic_label.setText("Orthographic")
+
+        self.perspective_box.addWidget(self.orthographic_label)
+        self.perspective_box.addWidget(self.orthographic_check)
+
+        self.checkboxbox.addLayout(self.perspective_box)
+        self.checkboxbox.addLayout(self.orthographic_box)
+
+        self.orthographic_check.clicked.connect(self.radio_clicked)
+        self.perspective_check.clicked.connect(self.radio_clicked)
+
+        self.projection_box.addWidget(self.projection_label)
+        self.projection_box.addLayout(self.checkboxbox)
+
+        self.setLayout(self.projection_box)
+        pass
+
+    def radio_clicked(self):
+        if self.orthographic_check.isChecked():
+            print("Orthographic")
+            test.set_projection_type_orthographic()
+        else:
+            print("Perspective")
+            test.set_projection_type_perspective()
+        self._glwindow.update()
 
 
 class LadeWindow(QtWidgets.QWidget):
@@ -129,21 +203,21 @@ class LadeWindow(QtWidgets.QWidget):
         self.lade_button = QPushButton('Laden', self)
         self.lade_button.setFixedSize(100, 30)
         self.lade_button.clicked.connect(self.lade_datei)
-        self.hbox = QHBoxLayout()
+        self.hbox = QHBoxLayout()                                                                                       #HBox mit einem Label und einem Knopf zum Laden
         #self.hbox.addStretch(0.5)
         self.hbox.addWidget(self.lade_label)
         self.hbox.addWidget(self.lade_button)
         self.setLayout(self.hbox)
 
     def lade_datei(self):
-        options = QtWidgets.QFileDialog.Options()
+        options = QtWidgets.QFileDialog.Options()                                                                       #File Dialog zum auswählen der Daten-Datei
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
         eingabe, _ = QtWidgets.QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
                                                   "All Files (*);;", options=options)
         if (not eingabe):
-            pass
+            pass                                                                                                        #Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
         else:
-            self._glwindow.data_path = eingabe
+            self._glwindow.data_path = eingabe                                                                          #So wird der Eingabestring verwendet und der neue Datensatz gewählt
             self._glwindow.setDataSet()
 
 class ColorWindow(QtWidgets.QWidget):
@@ -155,7 +229,7 @@ class ColorWindow(QtWidgets.QWidget):
         pass
 
     def initUI(self):
-        self.colorBox = QHBoxLayout()
+        self.color_hbox = QHBoxLayout()                                                                                   #Hbox mt 2 Knöpfen und einem Label
         self.color_label = QLabel()
         self.color_label.setText("Waehlen sie eine Farbe")
         self.bg_color_button = QPushButton('Fuer den Hintergrund', self)
@@ -164,21 +238,21 @@ class ColorWindow(QtWidgets.QWidget):
         self.spin_color_button = QPushButton('Fuer die Pfeile', self)
         self.spin_color_button.setFixedSize(100, 30)
         self.spin_color_button.clicked.connect(self.get_spin_color)
-        self.colorDialog = QtWidgets.QColorDialog()
-        self.colorBox.addWidget(self.color_label)
-        self.colorBox.addWidget(self.bg_color_button)
-        self.colorBox.addWidget(self.spin_color_button)
-        self.setLayout(self.colorBox)
+        self.color_dialog = QtWidgets.QColorDialog()                                                                    #Dialog Picker zum Farben auswählen
+        self.color_hbox.addWidget(self.color_label)
+        self.color_hbox.addWidget(self.bg_color_button)
+        self.color_hbox.addWidget(self.spin_color_button)
+        self.setLayout(self.color_hbox)
 
     def get_bg_color(self):
-        bg_rgb = [c * 255 for c in test.bg_rgb]
-        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*bg_rgb))
+        bg_rgb = [c * 255 for c in test.bg_rgb]                                                                         #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
+        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*bg_rgb))                                  #Speichert die Auswahl des Farbendialogs und setzt Standardwert auf vorher umgewandelte Farben
         if selectedColor.isValid():
             self._glwindow.set_bg_color(selectedColor.getRgb())
 
     def get_spin_color(self):
-        spin_rgb = [c * 255 for c in test.spin_rgb]
-        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*spin_rgb))
+        spin_rgb = [c * 255 for c in test.spin_rgb]                                                                     #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
+        selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*spin_rgb))                                #Speichert die Auswahl des Farbendialogs und setzt Standardwert auf vorher umgewandelte Farben
         if selectedColor.isValid():
             self._glwindow.set_spin_color(selectedColor.getRgb())
 
@@ -268,7 +342,7 @@ class ScreenWindow(QtWidgets.QWidget):
 
         else:
 
-            test.ScreenShoot(self.fileName.text() , "html", 1000, 1000) #Test.screenshot ruft gr3.export mit html auf
+            test.ScreenShoot(self.fileName.text() , "html", self._glwindow.width(), self._glwindow.heigh()) #Test.screenshot ruft gr3.export mit html auf
         self.update()
         print("Photoshoot")
         pass
@@ -331,25 +405,25 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         super().__init__(*args, **kwargs)
         self._first_paint = True
         self._camera_angle = 0.0
-        self._drawSpin = True
-        self._exportScreen = False                                      #exportScreen wird beim Knopfdruck auf True gestellt und triggert so export()
-        self.PcVektor = np.array([test.getCameraWerte(0),test.getCameraWerte(1),test.getCameraWerte(2)])
-        self.momentanerKameraVektor = np.array([test.getCameraWerte(0),test.getCameraWerte(1),test.getCameraWerte(2)])
-        self.camera_vektor_length = np.linalg.norm(self.momentanerKameraVektor)
-        self.PaVektor = np.array([test.getCameraWerte(0),test.getCameraWerte(1),test.getCameraWerte(2)])
-        self._radius = 2
-        self.fokusPunkt = np.array([0.0, 0.0, 0.0])
-        self.newUpV = np.array([0.0, 0.0, 1.0])
-        self._startPWerte = []
-        self._ersteMalGedrueckt = False
-        self._mausY = 1.0
-        self._mausZ = 2.0
+        self._draw_spin = True                                           #Verhindert das bei jeder Kamerabewegung die Spins neu gezeichnet werden
+        self._export_screen = False                                      #exportScreen wird beim Knopfdruck auf True gestellt und triggert so export()
+        self.point_c_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung aufhört
+        self.current_camera_vector = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])     #Kameravektor
+        self.camera_vektor_length = np.linalg.norm(self.current_camera_vector)                                                          #Norm des Kameravektors
+        self.point_a_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung startet
+        self._radius = 2                                                                                                                #Radius des Arcballs
+        self.focus_point = np.array([0.0, 0.0, 0.0])                                                                                    #Fokuspunkt
+        self.new_up_v = np.array([0.0, 0.0, 1.0])                                                                                       #
+        self._pressed_first_time = False
+        self._maus_y = 1.0
+        self._maus_z = 2.0
+
         self.data_path = ""
         self.initUI()
         pass
 
     def export(self, stringname):                                       #Export Funktion im GLWindow um Freeze zu vermeiden
-        self._exportScreen = True
+        self._export_screen = True
         self.screendateiname = stringname                               #Benutzt den uebergebenen dateinamen
         self.update()
 
@@ -363,28 +437,32 @@ class GLWidget(QtWidgets.QOpenGLWidget):
        # test.eingabe()
         gr3.usecurrentframebuffer()
         test.grSetUp()                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
-        if self._drawSpin:
-            self.spinDraw()
-            self._drawSpin = False
 
 
 
 
     def resizeGL(self, width, height):
+        print(self.width(), self.height())
+        gr3.drawimage(0, self.width(), 0, self.height(),
+                      self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
+                      gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+
         pass
 
     def spinDraw(self):
-        test.grDrawSpin(1000, 1000, self.devicePixelRatio())
+        test.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
 
     def paintGL(self):
 
         gr3.usecurrentframebuffer()
-        if self._exportScreen:                                          #Screenshot und setzen von export screen auf False fuer neuen Durchlauf
-            test.ScreenShoot(self.screendateiname, "png", 500, 500)
-            self._exportScreen = False
-        gr3.drawimage(0, 1000, 0, 1000,
-                      self.devicePixelRatio()*1000, self.devicePixelRatio()*1000, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        if self._export_screen:                                          #Screenshot und setzen von export screen auf False fuer neuen Durchlauf
+            test.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
+            self._export_screen = False
+        gr3.drawimage(0, self.width(), 0, self.height(),
+                      self.devicePixelRatio()*self.width(), self.devicePixelRatio()*self.height(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        print("width",self.width(), "height", self.height())
+
 
     def guiCameraChange(self):
         global linksdreh, hochdreh
@@ -393,10 +471,10 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def trackballCameraChange(self):
-        test.grCameraArcBallChange(self.momentanerKameraVektor)
+        test.grCameraArcBallChange(self.current_camera_vector)
         self.update()
 
-    def rotation_matrix(self, axis, theta):
+    def rotation_matrix(self, axis, theta):                                                                             #Berechnet aus Achse und Winkel eine Rotationsmatrix um den der Kamerapunkt rotiert wird
         axis = np.array(axis)
         if (math.sqrt(np.dot(axis, axis)) != 0):
             axis = axis / math.sqrt(np.dot(axis, axis))
@@ -409,19 +487,20 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                              [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
     def mouseMoveEvent(self, e):
-        if self._mausX == e.x() and self._mausY == self.height() - e.y():
+        if self._mausX == e.x() and self._maus_y == self.height() - e.y():                                              #Wenn nicht rotiert wurde wird es abgebrochen (Berechnung unnötig)
             return
         self._mausX = e.x()
-        self._mausY = self.height() - e.y()
-        self.calculate_koordinates_from_mouseclick(self.PcVektor)
+        self._maus_y = self.height() - e.y()                                                                            #Setzt Y 0-Wert auf unten links statt oben links
+        self.calculate_koordinates_from_mouseclick(self.point_c_vektor)                                                 #Berechnung des 3D Punktes der Kamerabewegung
         self.dreheKamera()
-        self.PaVektor = list(self.PcVektor)
+        self.point_a_vektor = list(self.point_c_vektor)                                                                 #Update Vektor a für nächste Berechnung
         self.update()
 
+
     def calculate_koordinates_from_mouseclick(self, list):
-        list[0] = 2 * self._mausX / self.width() - 1
-        list[1] = 2 * self._mausY / self.height() - 1
-        if (math.sqrt(list[0] ** 2 + list[1] ** 2) <= self._radius / math.sqrt(2)):
+        list[0] = 2 * self._mausX / self.width() - 1                                                                    #Umrechnung der Werte von 0-Fenstergrösse zu 0-1
+        list[1] = 2 * self._maus_y / self.height() - 1
+        if (math.sqrt(list[0] ** 2 + list[1] ** 2) <= self._radius / math.sqrt(2)):                                     #Berechnung des 3D-Punktes durch Arc-Ball Berechnung
             list[2] = math.sqrt(self._radius ** 2 - (list[0] ** 2 + list[1] ** 2))
         else:
             list[2] = self._radius ** 2 / (2 * (list[0] ** 2 + list[1] ** 2))
@@ -429,27 +508,27 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def mousePressEvent(self, e):
         print("Auf gl geklickt")
         self._mausX = e.x()
-        self._mausY = self.height() - e.y()
-        self.calculate_koordinates_from_mouseclick(self.PaVektor)
+        self._maus_y = self.height() - e.y()
+        self.calculate_koordinates_from_mouseclick(self.point_a_vektor)
         pass
 
     def set_momentaner_kameraVektor_in_test(self):
-        test.dreiCameraWerte = list(self.momentanerKameraVektor)
+        koor.camera_koordinates = list(self.current_camera_vector)                                                      #Updated die zentrale Camerakoordinaten in koor.
 
-    def recalculate_up_vector(self, forward_vector, up_vector):
+    def recalculate_up_vector(self, forward_vector, up_vector):                                                         #Berechnet den neuen up_vector aus dem neuen forward_vector
         right_vector = np.cross(forward_vector, up_vector)
         up_vector = np.cross(right_vector, forward_vector)
         return up_vector / np.linalg.norm(up_vector)
 
     def dreheKamera(self):
-        self.newUpV = self.recalculate_up_vector(self.momentanerKameraVektor, self.newUpV)
+        self.new_up_v = self.recalculate_up_vector(self.current_camera_vector, self.new_up_v)                           #Update des up Vektors
 
-        skalar = np.dot(self.PaVektor, self.PcVektor)
-        if skalar:
-            u = np.cross(self.PaVektor, self.PcVektor)
+        skalar = np.dot(self.point_a_vektor, self.point_c_vektor)                                                       #Skalarprodukt der Endpunkte der Kamerabewegung
+        if skalar:                                                                                                      #Falls das Skalar 0 ist also die Ortsvektoren orthogonal sind dann wird nicht berechnet
+            u = np.cross(self.point_a_vektor, self.point_c_vektor)
 
-            up_vector = self.newUpV
-            forward_vector = self.momentanerKameraVektor
+            up_vector = self.new_up_v                                                                                   #lokale Instanz des Up Vektors
+            forward_vector = self.current_camera_vector
             right_vector = np.cross(forward_vector, up_vector)
             up_vector = np.cross(right_vector, forward_vector)
             forward_vector /= np.linalg.norm(forward_vector)
@@ -461,22 +540,22 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             theta = np.arctan(norm / skalar)
 
             if norm:
-                print("Somethings happenin")
-                self.newUpV = np.dot(self.rotation_matrix(u, theta), self.newUpV)
-                self.momentanerKameraVektor = np.dot(self.rotation_matrix(u, theta), self.momentanerKameraVektor)
-                self.momentanerKameraVektor *= self.camera_vektor_length
+                self.new_up_v = np.dot(self.rotation_matrix(u, theta), self.new_up_v)
+                self.current_camera_vector = np.dot(self.rotation_matrix(u, theta), self.current_camera_vector)
+                self.current_camera_vector *= self.camera_vektor_length
         self.set_momentaner_kameraVektor_in_test()
-        test.setUpVektor(self.newUpV)
-        test.grCameraArcBallChange(self.momentanerKameraVektor)
+        test.setUpVektor(self.new_up_v)
+        test.grCameraArcBallChange(self.current_camera_vector)
         self.update()
 
     def setDataSet(self):
         print("Setzte Daten")
-        test.eingabe(self.data_path)
+        gr3.clear()                                                                                                     #Loecht die Drawlist vom GR3
+        test.eingabe(self.data_path)                                                                                    #Speichert die Spins aus der Eingabedatei in die Drawlist
         gr3.usecurrentframebuffer()
-        self.spinDraw()
+        test.grDrawSpin(self.width(),self.height(), self.devicePixelRatio())
 
-        self.repaint()
+        self.repaint()                                                                                                  #Zeichnet die Spins neu
 
     def set_bg_color(self, rgb_color):
         print("Von gui her", rgb_color)
