@@ -2,7 +2,9 @@ import gr3
 import gr
 import math
 import koor
+import spintest
 import numpy as np
+
 
 
 
@@ -14,6 +16,7 @@ spin_rgb = [1.00, 1.00, 1.00]                                                   
 projection_right = 20                                                                                                   #Wert des Orthographischen Quaders in Wuerfel Form
 projection_far = 400                                                                                                    #Laenge des Quaders
 current_path = ""                                                                                                       #Path Variable um den Momentanen Pfad auch nach der Auswahl zu benutzen
+is_projection = True                                                                                                       #If True -> Orthographic else Perspektive
 
 def eingabe(pfad):
     global fokus_punkt, current_path
@@ -80,21 +83,11 @@ def set_projection_type_orthographic():
 
 def set_projection_type_perspective():
     gr3.setprojectiontype(gr3.GR3_ProjectionType.GR3_PROJECTION_PERSPECTIVE)
-    gr3.setcameraprojectionparameters(45, 1, 100)
+    gr3.setcameraprojectionparameters(45, 2, 100)
 
-def move_to_fokuspoint():
-    global fokus_punkt
-    print("Muv")
-    print("1", fokus_punkt, koor.camera_koordinates)
-    camera_to_focus_vector = fokus_punkt - koor.camera_koordinates                                                      #Vektorberechnung von Kamera zu Fokuspunkt
-    koor.camera_koordinates += camera_to_focus_vector*1/10                                                              #Addition auf Kamerapunkt mit parameter 1/10
-    print("2", fokus_punkt, koor.camera_koordinates)
 
 def grCameraArcBallChange(camera_list):
     global  fokus_punkt
-    print("eingabe 1 = " + str(camera_list[0]))
-    print("eingabe 2 = " + str(camera_list[1]))
-    print("eingabe 3 = " + str(camera_list[2]))
     gr3.cameralookat(camera_list[0], camera_list[1], camera_list[2],
                      fokus_punkt[0], fokus_punkt[1], fokus_punkt[2],
                      up_vector[0], up_vector[1], up_vector[2])
@@ -127,12 +120,24 @@ def getUpVektor():
     global up_vector
     return up_vector
 
-def zoom_in_or_out_orthographic(int):                                                                                   #Funktioniert nur so halb, irgendwann überlappen die Pfeile
-    global projection_right
-    projection_right += int
-    gr3.setorthographicprojection(-projection_right, projection_right, -projection_right, projection_right,
-                                  -projection_far, projection_far)
 
+def zoom(int):
+    global projection_right, fokus_punkt, is_projection
+    print()
+
+    if is_projection:
+        print("Projection_Right: ", projection_right)
+        projection_right += int
+        gr3.setorthographicprojection(-projection_right, projection_right, -projection_right, projection_right,
+                                      -projection_far, projection_far)
+        print("Projection_Right: ", projection_right)
+    else:
+        print("Vor zoom ", "Fokuspunkt ", fokus_punkt, "Kamerekoordinaten ", koor.camera_koordinates)
+        camera_to_focus_vector = fokus_punkt - koor.camera_koordinates  # Vektorberechnung von Kamera zu Fokuspunkt
+        koor.camera_koordinates += camera_to_focus_vector * (int / 20)  # Addition auf Kamerapunkt mit parameter 1/10
+        grCameraArcBallChange(koor.camera_koordinates)
+        print("Nach Zoom ", "Fokuspunkt ", fokus_punkt, "Kamerekoordinaten ",koor.camera_koordinates)
+    print()
 
 def grDrawSpin(xmax, ymax, pixelRatio):
     global spin_rgb, spin_size                                                                                            #Erstellung der Spins mithilfe der Tupel aus der Einlesedatei

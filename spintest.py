@@ -32,7 +32,7 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
         self.draw_window = GLWidget()                                             #Erstellung der Zwei zentralen Fenster: das GLWidget m, mit der 3D Darstellung
         self.gui_window = GUIWindow(self.draw_window)                                      #Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
         self.draw_window.setMinimumSize(500, 500)
-        self.gui_window.setMaximumSize(500,500)
+        self.gui_window.setFixedSize(400,500)
         self.complete_window_hbox = QHBoxLayout()                                       #Horizontales Layout umd beides nebeneinander zulegen
         self.complete_window_hbox.addWidget(self.draw_window)
         self.complete_window_hbox.addWidget(self.gui_window)
@@ -182,11 +182,19 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
     def radio_clicked(self):
         if self.orthographic_check.isChecked():
             print("Orthographic")
+            test.is_projection = True
             test.set_projection_type_orthographic()
         else:
             print("Perspective")
+            test.is_projection = False
             test.set_projection_type_perspective()
         self._glwindow.update()
+
+    def is_orthographic_projection(self):
+        if self.orthographic_check.isChecked():
+            return True
+        else:
+            return False
 
 
 class LadeWindow(QtWidgets.QWidget):
@@ -284,13 +292,13 @@ class ScreenWindow(QtWidgets.QWidget):
 
         self.fileVBox = QVBoxLayout()                                   #Filebox beinhaltet die Eingabezeile und das Label
 
-        self.fileName = QLineEdit()
+        #self.fileName = QLineEdit()
 
         self.fileLabel = QLabel()
         self.fileLabel.setText("Dateiname:")
 
         self.fileVBox.addWidget(self.fileLabel)
-        self.fileVBox.addWidget(self.fileName)
+        #self.fileVBox.addWidget(self.fileName)
 
 
         self.checkboxbox = QHBoxLayout()                                #Checkboxbox beinhaltet 2 HBoxen, die je ein Label und ein Radiobutton haben
@@ -461,7 +469,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             self._export_screen = False
         gr3.drawimage(0, self.width(), 0, self.height(),
                       self.devicePixelRatio()*self.width(), self.devicePixelRatio()*self.height(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
-        print("width",self.width(), "height", self.height())
 
 
     def guiCameraChange(self):
@@ -505,8 +512,17 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         else:
             list[2] = self._radius ** 2 / (2 * (list[0] ** 2 + list[1] ** 2))
 
+    def wheelEvent(self, event):
+        pixels = event.pixelDelta()
+        if not pixels.isNull():
+            print("Pixels:", pixels.y())
+        test.zoom(pixels.y()/10)
+        self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)
+        self.current_camera_vector = koor.camera_koordinates
+        self.update()
+
+
     def mousePressEvent(self, e):
-        print("Auf gl geklickt")
         self._mausX = e.x()
         self._maus_y = self.height() - e.y()
         self.calculate_koordinates_from_mouseclick(self.point_a_vektor)
@@ -546,7 +562,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.set_momentaner_kameraVektor_in_test()
         test.setUpVektor(self.new_up_v)
         test.grCameraArcBallChange(self.current_camera_vector)
-        self.update()
+
 
     def setDataSet(self):
         print("Setzte Daten")
@@ -558,13 +574,11 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.repaint()                                                                                                  #Zeichnet die Spins neu
 
     def set_bg_color(self, rgb_color):
-        print("Von gui her", rgb_color)
         test.set_background_color(rgb_color)
         self.update()
         pass
 
     def set_spin_color(self, rgb_color):
-        print("Von gui her", rgb_color)
         test.set_spin_color(rgb_color, self.devicePixelRatio())
         self.update()
         pass
