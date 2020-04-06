@@ -33,6 +33,7 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
         self.gui_window = GUIWindow(self.draw_window)                                      #Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
         self.draw_window.setMinimumSize(500, 500)
         self.gui_window.setFixedSize(400,500)
+        self.gui_window.setFocusPolicy(Qt.ClickFocus)
         self.complete_window_hbox = QHBoxLayout()                                       #Horizontales Layout umd beides nebeneinander zulegen
         self.complete_window_hbox.addWidget(self.draw_window)
         self.complete_window_hbox.addWidget(self.gui_window)
@@ -146,6 +147,7 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
         self.perspective_box = QVBoxLayout()
 
         self.perspective_check = QRadioButton()
+        self.perspective_check.setFocusPolicy(Qt.ClickFocus)
 
         self.perspective_label = QLabel()
         self.perspective_label.setText("Perspective")
@@ -161,6 +163,7 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
 
         self.orthographic_check = QRadioButton()
         self.orthographic_check.setChecked(True)
+        self.orthographic_check.setFocusPolicy(Qt.ClickFocus)
         self.orthographic_label = QLabel()
         self.orthographic_label.setText("Orthographic")
 
@@ -292,13 +295,14 @@ class ScreenWindow(QtWidgets.QWidget):
 
         self.fileVBox = QVBoxLayout()                                   #Filebox beinhaltet die Eingabezeile und das Label
 
-        #self.fileName = QLineEdit()
+        self.fileName = QLineEdit()
+        self.fileName.setFocusPolicy(Qt.ClickFocus)
 
         self.fileLabel = QLabel()
         self.fileLabel.setText("Dateiname:")
 
         self.fileVBox.addWidget(self.fileLabel)
-        #self.fileVBox.addWidget(self.fileName)
+        self.fileVBox.addWidget(self.fileName)
 
 
         self.checkboxbox = QHBoxLayout()                                #Checkboxbox beinhaltet 2 HBoxen, die je ein Label und ein Radiobutton haben
@@ -346,8 +350,10 @@ class ScreenWindow(QtWidgets.QWidget):
     def doScreenshot(self):
         if self.pngcheck.isChecked() == True:                           #Wenn die Png Box an ist dann wird der Dateiname auf Variable gesetzt und das ganze anf das
             dateiname = self.fileName.text()                            #glwindw uebergeben, da ansonsten zu fehlern kommt
-            self._glwindow.export(dateiname)
-
+            if dateiname != "":
+                self._glwindow.export(dateiname)
+            else:
+                print("The name must be at least one character long")
         else:
 
             test.ScreenShoot(self.fileName.text() , "html", self._glwindow.width(), self._glwindow.heigh()) #Test.screenshot ruft gr3.export mit html auf
@@ -417,7 +423,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._export_screen = False                                      #exportScreen wird beim Knopfdruck auf True gestellt und triggert so export()
         self.point_c_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung aufhört
         self.current_camera_vector = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])     #Kameravektor
-        self.camera_vektor_length = np.linalg.norm(self.current_camera_vector)                                                          #Norm des Kameravektors
+        self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)                                                          #Norm des Kameravektors
         self.point_a_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung startet
         self._radius = 2                                                                                                                #Radius des Arcballs
         self.focus_point = np.array([0.0, 0.0, 0.0])                                                                                    #Fokuspunkt
@@ -518,7 +524,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             print("Pixels:", pixels.y())
         test.zoom(pixels.y()/10)
         self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)
-        self.current_camera_vector = koor.camera_koordinates
+        #self.current_camera_vector = koor.camera_koordinates
         self.update()
 
 
@@ -528,8 +534,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.calculate_koordinates_from_mouseclick(self.point_a_vektor)
         pass
 
-    def set_momentaner_kameraVektor_in_test(self):
-        koor.camera_koordinates = list(self.current_camera_vector)                                                      #Updated die zentrale Camerakoordinaten in koor.
+
 
     def recalculate_up_vector(self, forward_vector, up_vector):                                                         #Berechnet den neuen up_vector aus dem neuen forward_vector
         right_vector = np.cross(forward_vector, up_vector)
@@ -537,14 +542,18 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         return up_vector / np.linalg.norm(up_vector)
 
     def dreheKamera(self):
-        self.new_up_v = self.recalculate_up_vector(self.current_camera_vector, self.new_up_v)                           #Update des up Vektors
+        self.new_up_v = self.recalculate_up_vector(koor.camera_koordinates, self.new_up_v)                           #Update des up Vektors
+
+        print("Kamera vor Rotation", koor.camera_koordinates)
+        print()
+
 
         skalar = np.dot(self.point_a_vektor, self.point_c_vektor)                                                       #Skalarprodukt der Endpunkte der Kamerabewegung
         if skalar:                                                                                                      #Falls das Skalar 0 ist also die Ortsvektoren orthogonal sind dann wird nicht berechnet
             u = np.cross(self.point_a_vektor, self.point_c_vektor)
 
             up_vector = self.new_up_v                                                                                   #lokale Instanz des Up Vektors
-            forward_vector = self.current_camera_vector
+            forward_vector = koor.camera_koordinates
             right_vector = np.cross(forward_vector, up_vector)
             up_vector = np.cross(right_vector, forward_vector)
             forward_vector /= np.linalg.norm(forward_vector)
@@ -557,11 +566,18 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
             if norm:
                 self.new_up_v = np.dot(self.rotation_matrix(u, theta), self.new_up_v)
-                self.current_camera_vector = np.dot(self.rotation_matrix(u, theta), self.current_camera_vector)
-                self.current_camera_vector *= self.camera_vektor_length
-        self.set_momentaner_kameraVektor_in_test()
+                koor.camera_koordinates = np.dot(self.rotation_matrix(u, theta), koor.camera_koordinates)
+                print("Kamera vor Normalisierung", koor.camera_koordinates )
+                print()
+                koor.camera_koordinates /= np.linalg.norm(koor.camera_koordinates)
+                koor.camera_koordinates *= self.camera_vektor_length
+                print("Kamera nach Normalisierung", koor.camera_koordinates)
+                print()
+        print("Kamera nach Rotation", koor.camera_koordinates)
+        print()
+        print()
         test.setUpVektor(self.new_up_v)
-        test.grCameraArcBallChange(self.current_camera_vector)
+        test.grCameraArcBallChange(koor.camera_koordinates)
 
 
     def setDataSet(self):

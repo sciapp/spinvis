@@ -128,6 +128,7 @@ def zoom(int):
     if is_projection:
         print("Projection_Right: ", projection_right)
         projection_right += int
+        print("Kamera Vektor: ", koor.camera_koordinates)
         gr3.setorthographicprojection(-projection_right, projection_right, -projection_right, projection_right,
                                       -projection_far, projection_far)
         print("Projection_Right: ", projection_right)
@@ -151,6 +152,9 @@ def grDrawSpin(xmax, ymax, pixelRatio):
     print("xmax", xmax, "ymax", ymax)
 
 def ScreenShoot(name, format, width, height):
-    filename = name + "." + format                                                                                      #Zusammensetzung des Dateinamen aus Name.Format
-    gr3.export(filename, width, height)                                                                                 #Screenshoot Speicher
-    print(filename, width, height)
+    if name != "":
+        filename = name + "." + format                                                                                      #Zusammensetzung des Dateinamen aus Name.Format
+        gr3.export(filename, width, height)                                                                                 #Screenshoot Speicher
+        print(filename, width, height)
+    else:
+        print("Please use a name at least one character long")
