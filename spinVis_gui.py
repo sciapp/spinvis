@@ -569,7 +569,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def setDataSet(self):
         gr3.clear()                                                                                                     #Loecht die Drawlist vom GR3
-        spinVis_camera.eingabe(self.data_path)                                                                                    #Speichert die Spins aus der Eingabedatei in die Drawlist
+        spinVis_camera.eingabe(self.data_path)                                                                          #Speichert die Spins aus der Eingabedatei in die Drawlist
         gr3.usecurrentframebuffer()
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
