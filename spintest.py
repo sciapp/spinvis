@@ -53,44 +53,13 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
             self.draw_window.focus_point[0] -= 1
             test.set_focus_point(self.draw_window.focus_point)
         if QKeyEvent.key() == QtCore.Qt.Key_Right:
-            if linksdreh < 12.5:
-                linksdreh +=0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                print("Wuhuuuu")
-                self.gui_window.slide_win.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
-            else:
-                linksdreh += 0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.leftslid.setValue(0)
+            self.draw_window.rotate_right()
         if QKeyEvent.key() == QtCore.Qt.Key_Left:
-            if linksdreh > 6.3:
-                linksdreh -=0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.leftslid.setValue(100 * (linksdreh / (2 * math.pi) - 1))
-            else:
-                linksdreh -= 0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.leftslid.setValue(100)
+            self.draw_window.rotate_left()
         if QKeyEvent.key() == QtCore.Qt.Key_Up:
-            print(hochdreh)
-            if hochdreh < 6.2:
-                hochdreh += 0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
-            else:
-                hochdreh += 0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.upslid.setValue(0)
+            self.draw_window.rotate_up()
         if QKeyEvent.key() == QtCore.Qt.Key_Down:
-            print(hochdreh)
-            if hochdreh > 3.2:
-                hochdreh -=0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.upslid.setValue(100 * (hochdreh / (math.pi) + 1))
-            else:
-                hochdreh -= 0.1
-                test.grCameraGuiChange(hochdreh, linksdreh)
-                self.gui_window.slide_win.upslid.setValue(100)
+            self.draw_window.rotate_down()
         if QKeyEvent.key() == QtCore.Qt.Key_A:
             test.zoom_in_or_out_orthographic(0.1)
         if QKeyEvent.key() == QtCore.Qt.Key_B:
@@ -411,6 +380,7 @@ class SliderWindow(QtWidgets.QWidget):
     def changeLeftValue(self, value):
         global linksdreh, hochdreh                                         #Globale Variable linskdreh wird benutzt und veraendert
         linksdreh = ((value/100)+1)*math.pi*2                           #Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
+
         test.grCameraGuiChange(hochdreh, linksdreh)
         self._glwindow.update()                                         #Update des Fensters um aenderung anzuszeigen
 
@@ -450,7 +420,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.init()
        # test.eingabe()
         gr3.usecurrentframebuffer()
-        test.grSetUp()                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
+        test.grSetUp(self.width(), self.height())                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
 
 
 
@@ -460,6 +430,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.drawimage(0, self.width(), 0, self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
                       gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        test.grSetUp(self.width(), self.height())
 
         pass
 
@@ -505,7 +476,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._mausX = e.x()
         self._maus_y = self.height() - e.y()                                                                            #Setzt Y 0-Wert auf unten links statt oben links
         self.calculate_koordinates_from_mouseclick(self.point_c_vektor)                                                 #Berechnung des 3D Punktes der Kamerabewegung
-        self.dreheKamera()
+        self.dreheKamera(self.point_a_vektor, self.point_c_vektor)
         self.point_a_vektor = list(self.point_c_vektor)                                                                 #Update Vektor a für nächste Berechnung
         self.update()
 
@@ -522,7 +493,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         pixels = event.pixelDelta()
         if not pixels.isNull():
             print("Pixels:", pixels.y())
-        test.zoom(pixels.y()/10)
+        test.zoom(pixels.y()/10, self.width(), self.height())
         self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)
         #self.current_camera_vector = koor.camera_koordinates
         self.update()
@@ -541,16 +512,16 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         up_vector = np.cross(right_vector, forward_vector)
         return up_vector / np.linalg.norm(up_vector)
 
-    def dreheKamera(self):
+    def dreheKamera(self, start_point, end_point):
         self.new_up_v = self.recalculate_up_vector(koor.camera_koordinates, self.new_up_v)                           #Update des up Vektors
 
         print("Kamera vor Rotation", koor.camera_koordinates)
         print()
 
 
-        skalar = np.dot(self.point_a_vektor, self.point_c_vektor)                                                       #Skalarprodukt der Endpunkte der Kamerabewegung
+        skalar = np.dot(start_point, end_point)                                                       #Skalarprodukt der Endpunkte der Kamerabewegung
         if skalar:                                                                                                      #Falls das Skalar 0 ist also die Ortsvektoren orthogonal sind dann wird nicht berechnet
-            u = np.cross(self.point_a_vektor, self.point_c_vektor)
+            u = np.cross(start_point, end_point)
 
             up_vector = self.new_up_v                                                                                   #lokale Instanz des Up Vektors
             forward_vector = koor.camera_koordinates
@@ -579,6 +550,18 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         test.setUpVektor(self.new_up_v)
         test.grCameraArcBallChange(koor.camera_koordinates)
 
+    def rotate_right(self):
+        print("Drehe rechts")
+
+    def rotate_left(self):
+        print("Drehe links")
+
+    def rotate_up(self):
+        print("Drehe hoch")
+        self.dreheKamera(koor.camera_koordinates, koor.camera_koordinates + self.new_up_v)
+
+    def rotate_down(self):
+        print("Drehe runter")
 
     def setDataSet(self):
         print("Setzte Daten")
@@ -614,4 +597,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

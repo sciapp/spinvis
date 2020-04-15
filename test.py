@@ -56,11 +56,11 @@ def set_focus_point(val_list):                                                  
     fokus_punkt = list(val_list)
 
 
-def grSetUp():
+def grSetUp(breite, hoehe):
     global up_vector,  fokus_punkt, bg_rgb, projection_right, projection_far
     gr3.setbackgroundcolor(bg_rgb[0], bg_rgb[1], bg_rgb[2], bg_rgb[3])                                                  #Hintergrundfarbe wird gesetzt
     gr3.setcameraprojectionparameters(45, 1, 100)
-    gr3.setorthographicprojection(-projection_right, projection_right, -projection_right, projection_right, -projection_far, projection_far )       #Setzt Projectionstyp auf Orthographisch
+    gr3.setorthographicprojection(-projection_right *breite /hoehe, projection_right *breite /hoehe , -projection_right, projection_right, -projection_far, projection_far )       #Setzt Projectionstyp auf Orthographisch
     gr3.cameralookat(koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2],  #Nimmt die Camera Koordinaten aus koor.py, fokus_punkt und up_vector wird noch de-globalisiert
                      fokus_punkt[0], fokus_punkt[1], fokus_punkt[2],
                      up_vector[0], up_vector[1], up_vector[2])
@@ -121,7 +121,7 @@ def getUpVektor():
     return up_vector
 
 
-def zoom(int):
+def zoom(int, breite, hoehe):
     global projection_right, fokus_punkt, is_projection
     print()
 
@@ -129,7 +129,7 @@ def zoom(int):
         print("Projection_Right: ", projection_right)
         projection_right += int
         print("Kamera Vektor: ", koor.camera_koordinates)
-        gr3.setorthographicprojection(-projection_right, projection_right, -projection_right, projection_right,
+        gr3.setorthographicprojection(-projection_right *breite /hoehe, projection_right *breite /hoehe, -projection_right, projection_right,
                                       -projection_far, projection_far)
         print("Projection_Right: ", projection_right)
     else:
