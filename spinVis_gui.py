@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from functools import partial
 import gr3
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
-import test
-import koor
+import spinVis_camera
+import spinVis_coor
 from PyQt5.QtWidgets import (QWidget,
                              QHBoxLayout,QRadioButton ,QButtonGroup,QLineEdit, QVBoxLayout, QApplication, QPushButton, QLabel, QSlider)     #Import der versch. QtWidgets
 from PyQt5.QtCore import Qt
@@ -28,7 +27,7 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
         pass
 
     def initUI(self):
-        self.setWindowTitle('PyQt5/GR3 molecule plot example')
+        self.setWindowTitle('SpinVis2 by PGI/JCNS-TA')
         self.draw_window = GLWidget()                                             #Erstellung der Zwei zentralen Fenster: das GLWidget m, mit der 3D Darstellung
         self.gui_window = GUIWindow(self.draw_window)                                      #Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
         self.draw_window.setMinimumSize(500, 500)
@@ -44,12 +43,12 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
 
     def keyPressEvent(self, QKeyEvent):
         global linksdreh, hochdreh
-        print("Knopf gedrueckt")
-        print(QKeyEvent.key())
-        if QKeyEvent.key() == QtCore.Qt.Key_H:                                                                          #Tastatur-Abfrage, Pfeiltasten für Kamerasteuerung ähnlich zu den Slidern, H und G zum Zoomen in perspektive und A/B zum zoomen in orthograpisch
+
+        '''  if QKeyEvent.key() == QtCore.Qt.Key_H:                                                                          #Tastatur-Abfrage, Pfeiltasten für Kamerasteuerung ähnlich zu den Slidern, H und G zum Zoomen in perspektive und A/B zum zoomen in orthograpisch
             test.spin_size += 0.1
         if QKeyEvent.key() == QtCore.Qt.Key_G:
             test.spin_size -= 0.1
+        '''
 
         if QKeyEvent.key() == QtCore.Qt.Key_Right:
             self.draw_window.rotate_right()
@@ -62,9 +61,9 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
 
 
         if QKeyEvent.key() == QtCore.Qt.Key_A:
-            test.zoom(0.1, self.draw_window.width(), self.draw_window.height())
+            spinVis_camera.zoom(0.1, self.draw_window.width(), self.draw_window.height())
         if QKeyEvent.key() == QtCore.Qt.Key_B:
-            test.zoom(- 0.1, self.draw_window.width(), self.draw_window.height())
+            spinVis_camera.zoom(- 0.1, self.draw_window.width(), self.draw_window.height())
         self.draw_window.update()
 
 
@@ -79,13 +78,13 @@ class GUIWindow(QtWidgets.QWidget):                                     #GUI Win
     def initUI(self):
         self.pgroup = QtWidgets.QGroupBox()
         self.p_win = ProjectionWindow(self._glwindow)
-        self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
+        #self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
         self.screen_win = ScreenWindow(self._glwindow)                           #Screen Boxlayout fuer Screenshot steuerung
         self.l_win = LadeWindow(self._glwindow)                                     #Lade Boxlayout um neuen Datensatz zu laden
         self.c_win = ColorWindow(self._glwindow)                                    #Color Boxlayout um Farbe für Hintergrund und Spins zu setzen
         self.vbox = QVBoxLayout()
         self.vbox.addWidget(self.p_win)
-        self.vbox.addWidget(self.slide_win)
+        #self.vbox.addWidget(self.slide_win)
         self.vbox.addWidget(self.screen_win)
         self.vbox.addWidget(self.l_win)
         self.vbox.addWidget(self.c_win)
@@ -106,7 +105,7 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
         self.projection_box = QHBoxLayout()                                                                             #Eine grosse HBox die ein Label und eine weite HBox beinhaltet. In der sind 2 VBoxLayouts mit jeweils einem HLabel und einem RadioButton
         #self.projection_box.addStretch(0.5)
         self.projection_label = QtWidgets.QLabel()
-        self.projection_label.setText("Waelen sie eine Perspektive")                                                    #Pop-Up das Hilftext anzeigt
+        self.projection_label.setText("Choose a perspective type:")                                                    #Pop-Up das Hilftext anzeigt
         self.projection_label.setToolTip("The projectiontype  defines how a 3D object is pictured on a 2D screen. \n"
                                          "The parallel projection is simulating the effects of the real world. Objects \n"
                                          "farther away appear smaller. The orthographic projection depicts every object \n"
@@ -120,7 +119,7 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
         self.perspective_check.setFocusPolicy(Qt.ClickFocus)
 
         self.perspective_label = QLabel()
-        self.perspective_label.setText("Perspective")
+        self.perspective_label.setText("Perspektive")
         #self.perspective_check.toggle()
 
 
@@ -154,13 +153,13 @@ class ProjectionWindow(QtWidgets.QWidget):                              #
 
     def radio_clicked(self):
         if self.orthographic_check.isChecked():
-            print("Orthographic")
-            test.is_projection = True
-            test.set_projection_type_orthographic()
+            #print("Orthographic")
+            spinVis_camera.is_projection = True
+            spinVis_camera.set_projection_type_orthographic()
         else:
-            print("Perspective")
-            test.is_projection = False
-            test.set_projection_type_perspective()
+            #print("Perspective")
+            spinVis_camera.is_projection = False
+            spinVis_camera.set_projection_type_perspective()
         self._glwindow.update()
 
     def is_orthographic_projection(self):
@@ -181,7 +180,7 @@ class LadeWindow(QtWidgets.QWidget):
     def initUI(self):
         self.lade_label = QtWidgets.QLabel()
         self.lade_label.setText("Load new set of spins from a txt file:")
-        self.lade_button = QPushButton('Laden', self)
+        self.lade_button = QPushButton('Load set', self)
         self.lade_button.setFixedSize(100, 30)
         self.lade_button.clicked.connect(self.lade_datei)
         self.hbox = QHBoxLayout()                                                                                       #HBox mit einem Label und einem Knopf zum Laden
@@ -212,11 +211,11 @@ class ColorWindow(QtWidgets.QWidget):
     def initUI(self):
         self.color_hbox = QHBoxLayout()                                                                                   #Hbox mt 2 Knöpfen und einem Label
         self.color_label = QLabel()
-        self.color_label.setText("Waehlen sie eine Farbe")
-        self.bg_color_button = QPushButton('Fuer den Hintergrund', self)
+        self.color_label.setText("Choose a color:")
+        self.bg_color_button = QPushButton('Background', self)
         self.bg_color_button.setFixedSize(100, 30)
         self.bg_color_button.clicked.connect(self.get_bg_color)
-        self.spin_color_button = QPushButton('Fuer die Pfeile', self)
+        self.spin_color_button = QPushButton('Spins', self)
         self.spin_color_button.setFixedSize(100, 30)
         self.spin_color_button.clicked.connect(self.get_spin_color)
         self.color_dialog = QtWidgets.QColorDialog()                                                                    #Dialog Picker zum Farben auswählen
@@ -226,13 +225,13 @@ class ColorWindow(QtWidgets.QWidget):
         self.setLayout(self.color_hbox)
 
     def get_bg_color(self):
-        bg_rgb = [c * 255 for c in test.bg_rgb]                                                                         #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
+        bg_rgb = [c * 255 for c in spinVis_camera.bg_rgb]                                                                         #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
         selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*bg_rgb))                                  #Speichert die Auswahl des Farbendialogs und setzt Standardwert auf vorher umgewandelte Farben
         if selectedColor.isValid():
             self._glwindow.set_bg_color(selectedColor.getRgb())
 
     def get_spin_color(self):
-        spin_rgb = [c * 255 for c in test.spin_rgb]                                                                     #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
+        spin_rgb = [c * 255 for c in spinVis_camera.spin_rgb]                                                                     #Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
         selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*spin_rgb))                                #Speichert die Auswahl des Farbendialogs und setzt Standardwert auf vorher umgewandelte Farben
         if selectedColor.isValid():
             self._glwindow.set_spin_color(selectedColor.getRgb())
@@ -269,7 +268,7 @@ class ScreenWindow(QtWidgets.QWidget):
         self.fileName.setFocusPolicy(Qt.ClickFocus)
 
         self.fileLabel = QLabel()
-        self.fileLabel.setText("Dateiname:")
+        self.fileLabel.setText("Filename:")
 
         self.fileVBox.addWidget(self.fileLabel)
         self.fileVBox.addWidget(self.fileName)
@@ -326,9 +325,8 @@ class ScreenWindow(QtWidgets.QWidget):
                 print("The name must be at least one character long")
         else:
 
-            test.ScreenShoot(self.fileName.text() , "html", self._glwindow.width(), self._glwindow.heigh()) #Test.screenshot ruft gr3.export mit html auf
+            spinVis_camera.ScreenShoot(self.fileName.text(), "html", self._glwindow.width(), self._glwindow.heigh()) #Test.screenshot ruft gr3.export mit html auf
         self.update()
-        print("Photoshoot")
         pass
 
 
@@ -375,14 +373,14 @@ class SliderWindow(QtWidgets.QWidget):
     def changeUpValue(self, value):
         global hochdreh, linksdreh                                               #Globale Variable hochdreh wird benutzt und veraendert
         hochdreh = ((value/100)-1)*math.pi                              #Setzt den Wert des Sliders auf das Pandan zwischen 0 und pi fuer die Kugelformel
-        test.grCameraGuiChange(hochdreh, linksdreh)
+        spinVis_camera.grCameraGuiChange(hochdreh, linksdreh)
         self._glwindow.update()                                         #Update des Fensters um aenderung anzuszeigen
 
     def changeLeftValue(self, value):
         global linksdreh, hochdreh                                         #Globale Variable linskdreh wird benutzt und veraendert
         linksdreh = ((value/100)+1)*math.pi*2                           #Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
 
-        test.grCameraGuiChange(hochdreh, linksdreh)
+        spinVis_camera.grCameraGuiChange(hochdreh, linksdreh)
         self._glwindow.update()                                         #Update des Fensters um aenderung anzuszeigen
 
 class GLWidget(QtWidgets.QOpenGLWidget):
@@ -392,10 +390,10 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._camera_angle = 0.0
         self._draw_spin = True                                           #Verhindert das bei jeder Kamerabewegung die Spins neu gezeichnet werden
         self._export_screen = False                                      #exportScreen wird beim Knopfdruck auf True gestellt und triggert so export()
-        self.point_c_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung aufhört
-        self.current_camera_vector = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])     #Kameravektor
-        self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)                                                          #Norm des Kameravektors
-        self.point_a_vektor = np.array([koor.camera_koordinates[0], koor.camera_koordinates[1], koor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung startet
+        self.point_c_vektor = np.array([spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1], spinVis_coor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung aufhört
+        self.current_camera_vector = np.array([spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1], spinVis_coor.camera_koordinates[2]])     #Kameravektor
+        self.camera_vektor_length = np.linalg.norm(spinVis_coor.camera_koordinates)                                                          #Norm des Kameravektors
+        self.point_a_vektor = np.array([spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1], spinVis_coor.camera_koordinates[2]])            #Ortsvektor des Punktes andem die Kamerabewegung startet
         self._radius = 2                                                                                                                #Radius des Arcballs
         self.focus_point = np.array([0.0, 0.0, 0.0])                                                                                    #Fokuspunkt
         self.new_up_v = np.array([0.0, 0.0, 1.0])                                                                                       #
@@ -421,29 +419,28 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.init()
        # test.eingabe()
         gr3.usecurrentframebuffer()
-        test.grSetUp(self.width(), self.height())                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
+        spinVis_camera.grSetUp(self.width(), self.height())                          #GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
 
 
 
 
     def resizeGL(self, width, height):
-        print(self.width(), self.height())
         gr3.drawimage(0, self.width(), 0, self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
                       gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
-        test.grSetUp(self.width(), self.height())
+        spinVis_camera.grSetUp(self.width(), self.height())
 
         pass
 
     def spinDraw(self):
-        test.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
+        spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
 
     def paintGL(self):
 
         gr3.usecurrentframebuffer()
         if self._export_screen:                                          #Screenshot und setzen von export screen auf False fuer neuen Durchlauf
-            test.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
+            spinVis_camera.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
             self._export_screen = False
         gr3.drawimage(0, self.width(), 0, self.height(),
                       self.devicePixelRatio()*self.width(), self.devicePixelRatio()*self.height(), gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
@@ -451,12 +448,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def guiCameraChange(self):
         global linksdreh, hochdreh
-        test.grCameraGuiChange(hochdreh,linksdreh)
+        spinVis_camera.grCameraGuiChange(hochdreh, linksdreh)
         self.update()
 
 
     def trackballCameraChange(self):
-        test.grCameraArcBallChange(self.current_camera_vector)
+        spinVis_camera.grCameraArcBallChange(self.current_camera_vector)
         self.update()
 
     def rotation_matrix(self, axis, theta):                                                                             #Berechnet aus Achse und Winkel eine Rotationsmatrix um den der Kamerapunkt rotiert wird
@@ -485,18 +482,15 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def calculate_koordinates_from_mouseclick(self, list):
-        print(list)
         if (math.sqrt(list[0] ** 2 + list[1] ** 2) <= self._radius / math.sqrt(2)):                                     #Berechnung des 3D-Punktes durch Arc-Ball Berechnung
             list[2] = math.sqrt(self._radius ** 2 - (list[0] ** 2 + list[1] ** 2))
         else:
             list[2] = self._radius ** 2 / (2 * (list[0] ** 2 + list[1] ** 2))
-        print(list)
+
     def wheelEvent(self, event):
         pixels = event.pixelDelta()
-        if not pixels.isNull():
-            print("Pixels:", pixels.y())
-        test.zoom(pixels.y()/10, self.width(), self.height())
-        self.camera_vektor_length = np.linalg.norm(koor.camera_koordinates)
+        spinVis_camera.zoom(pixels.y() / 10, self.width(), self.height())
+        self.camera_vektor_length = np.linalg.norm(spinVis_coor.camera_koordinates)
         #self.current_camera_vector = koor.camera_koordinates
         self.update()
 
@@ -517,10 +511,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         return up_vector / np.linalg.norm(up_vector)
 
     def dreheKamera(self, start_point, end_point):
-        self.new_up_v = self.recalculate_up_vector(koor.camera_koordinates, self.new_up_v)                           #Update des up Vektors
-
-        print("Kamera vor Rotation", koor.camera_koordinates)
-        print()
+        self.new_up_v = self.recalculate_up_vector(spinVis_coor.camera_koordinates, self.new_up_v)                           #Update des up Vektors
 
 
         skalar = np.dot(start_point, end_point)                                                       #Skalarprodukt der Endpunkte der Kamerabewegung
@@ -528,7 +519,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             u = np.cross(start_point, end_point)
 
             up_vector = self.new_up_v                                                                                   #lokale Instanz des Up Vektors
-            forward_vector = koor.camera_koordinates
+            forward_vector = spinVis_coor.camera_koordinates
             right_vector = np.cross(forward_vector, up_vector)
             up_vector = np.cross(right_vector, forward_vector)
             forward_vector /= np.linalg.norm(forward_vector)
@@ -541,37 +532,27 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
             if norm:
                 self.new_up_v = np.dot(self.rotation_matrix(u, theta), self.new_up_v)
-                koor.camera_koordinates = np.dot(self.rotation_matrix(u, theta), koor.camera_koordinates)
-                print("Kamera vor Normalisierung", koor.camera_koordinates )
-                print()
-                koor.camera_koordinates /= np.linalg.norm(koor.camera_koordinates)
-                koor.camera_koordinates *= self.camera_vektor_length
-                print("Kamera nach Normalisierung", koor.camera_koordinates)
-                print()
-        print("Kamera nach Rotation", koor.camera_koordinates)
-        print()
-        print()
-        test.setUpVektor(self.new_up_v)
-        test.grCameraArcBallChange(koor.camera_koordinates)
+                spinVis_coor.camera_koordinates = np.dot(self.rotation_matrix(u, theta), spinVis_coor.camera_koordinates)
+                spinVis_coor.camera_koordinates /= np.linalg.norm(spinVis_coor.camera_koordinates)
+                spinVis_coor.camera_koordinates *= self.camera_vektor_length
+        spinVis_camera.setUpVektor(self.new_up_v)
+        spinVis_camera.grCameraArcBallChange(spinVis_coor.camera_koordinates)
 
     def rotate_right(self):
-        print("Drehe rechts")
         center_point_vektor = np.array([0.0, 0.0, 0.0])
         self.calculate_koordinates_from_mouseclick(center_point_vektor)
-        rotate_point_vektor = np.array([0.2, 0.0, 0.0])
+        rotate_point_vektor = np.array([0.02, 0.0, 0.0])
         self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
         self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_left(self):
-        print("Drehe links")
         center_point_vektor = np.array([0.0, 0.0, 0.0])
         self.calculate_koordinates_from_mouseclick(center_point_vektor)
-        rotate_point_vektor = np.array([-0.2, 0.0, 0.0])
+        rotate_point_vektor = np.array([-0.02, 0.0, 0.0])
         self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
         self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_up(self):
-        print("Drehe hoch")
         center_point_vektor = np.array([0.0, 0.0, 0.0] )
         self.calculate_koordinates_from_mouseclick(center_point_vektor)
         rotate_point_vektor = np.array([0.0, 0.02, 0.0])
@@ -579,7 +560,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_down(self):
-        print("Drehe runter")
         center_point_vektor = np.array([0.0, 0.0, 0.0])
         self.calculate_koordinates_from_mouseclick(center_point_vektor)
         rotate_point_vektor = np.array([0.0, -0.02, 0.0])
@@ -588,21 +568,20 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def setDataSet(self):
-        print("Setzte Daten")
         gr3.clear()                                                                                                     #Loecht die Drawlist vom GR3
-        test.eingabe(self.data_path)                                                                                    #Speichert die Spins aus der Eingabedatei in die Drawlist
+        spinVis_camera.eingabe(self.data_path)                                                                                    #Speichert die Spins aus der Eingabedatei in die Drawlist
         gr3.usecurrentframebuffer()
-        test.grDrawSpin(self.width(),self.height(), self.devicePixelRatio())
+        spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
         self.repaint()                                                                                                  #Zeichnet die Spins neu
 
     def set_bg_color(self, rgb_color):
-        test.set_background_color(rgb_color)
+        spinVis_camera.set_background_color(rgb_color)
         self.update()
         pass
 
     def set_spin_color(self, rgb_color):
-        test.set_spin_color(rgb_color, self.devicePixelRatio())
+        spinVis_camera.set_spin_color(rgb_color, self.devicePixelRatio())
         self.update()
         pass
 
