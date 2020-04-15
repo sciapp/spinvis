@@ -47,11 +47,10 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
         print("Knopf gedrueckt")
         print(QKeyEvent.key())
         if QKeyEvent.key() == QtCore.Qt.Key_H:                                                                          #Tastatur-Abfrage, Pfeiltasten für Kamerasteuerung ähnlich zu den Slidern, H und G zum Zoomen in perspektive und A/B zum zoomen in orthograpisch
-            self.draw_window.focus_point[0] += 1
-            test.set_focus_point(self.draw_window.focus_point)
+            test.spin_size += 0.1
         if QKeyEvent.key() == QtCore.Qt.Key_G:
-            self.draw_window.focus_point[0] -= 1
-            test.set_focus_point(self.draw_window.focus_point)
+            test.spin_size -= 0.1
+
         if QKeyEvent.key() == QtCore.Qt.Key_Right:
             self.draw_window.rotate_right()
         if QKeyEvent.key() == QtCore.Qt.Key_Left:
@@ -60,10 +59,12 @@ class MainWindow(QtWidgets.QWidget):                                    #Klasse 
             self.draw_window.rotate_up()
         if QKeyEvent.key() == QtCore.Qt.Key_Down:
             self.draw_window.rotate_down()
+
+
         if QKeyEvent.key() == QtCore.Qt.Key_A:
-            test.zoom_in_or_out_orthographic(0.1)
+            test.zoom(0.1, self.draw_window.width(), self.draw_window.height())
         if QKeyEvent.key() == QtCore.Qt.Key_B:
-            test.zoom_in_or_out_orthographic(-0.1)
+            test.zoom(- 0.1, self.draw_window.width(), self.draw_window.height())
         self.draw_window.update()
 
 
@@ -475,6 +476,8 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             return
         self._mausX = e.x()
         self._maus_y = self.height() - e.y()                                                                            #Setzt Y 0-Wert auf unten links statt oben links
+        self.point_c_vektor[0] = 2 * self._mausX / self.width() - 1  # Umrechnung der Werte von 0-Fenstergrösse zu 0-1
+        self.point_c_vektor[1] = 2 * self._maus_y / self.height() - 1
         self.calculate_koordinates_from_mouseclick(self.point_c_vektor)                                                 #Berechnung des 3D Punktes der Kamerabewegung
         self.dreheKamera(self.point_a_vektor, self.point_c_vektor)
         self.point_a_vektor = list(self.point_c_vektor)                                                                 #Update Vektor a für nächste Berechnung
@@ -482,13 +485,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
     def calculate_koordinates_from_mouseclick(self, list):
-        list[0] = 2 * self._mausX / self.width() - 1                                                                    #Umrechnung der Werte von 0-Fenstergrösse zu 0-1
-        list[1] = 2 * self._maus_y / self.height() - 1
+        print(list)
         if (math.sqrt(list[0] ** 2 + list[1] ** 2) <= self._radius / math.sqrt(2)):                                     #Berechnung des 3D-Punktes durch Arc-Ball Berechnung
             list[2] = math.sqrt(self._radius ** 2 - (list[0] ** 2 + list[1] ** 2))
         else:
             list[2] = self._radius ** 2 / (2 * (list[0] ** 2 + list[1] ** 2))
-
+        print(list)
     def wheelEvent(self, event):
         pixels = event.pixelDelta()
         if not pixels.isNull():
@@ -502,6 +504,8 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def mousePressEvent(self, e):
         self._mausX = e.x()
         self._maus_y = self.height() - e.y()
+        self.point_a_vektor[0] = 2 * self._mausX / self.width() - 1  # Umrechnung der Werte von 0-Fenstergrösse zu 0-1
+        self.point_a_vektor[1] = 2 * self._maus_y / self.height() - 1
         self.calculate_koordinates_from_mouseclick(self.point_a_vektor)
         pass
 
@@ -552,16 +556,36 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def rotate_right(self):
         print("Drehe rechts")
+        center_point_vektor = np.array([0.0, 0.0, 0.0])
+        self.calculate_koordinates_from_mouseclick(center_point_vektor)
+        rotate_point_vektor = np.array([0.2, 0.0, 0.0])
+        self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
+        self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_left(self):
         print("Drehe links")
+        center_point_vektor = np.array([0.0, 0.0, 0.0])
+        self.calculate_koordinates_from_mouseclick(center_point_vektor)
+        rotate_point_vektor = np.array([-0.2, 0.0, 0.0])
+        self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
+        self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_up(self):
         print("Drehe hoch")
-        self.dreheKamera(koor.camera_koordinates, koor.camera_koordinates + self.new_up_v)
+        center_point_vektor = np.array([0.0, 0.0, 0.0] )
+        self.calculate_koordinates_from_mouseclick(center_point_vektor)
+        rotate_point_vektor = np.array([0.0, 0.02, 0.0])
+        self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
+        self.dreheKamera(center_point_vektor, rotate_point_vektor)
 
     def rotate_down(self):
         print("Drehe runter")
+        center_point_vektor = np.array([0.0, 0.0, 0.0])
+        self.calculate_koordinates_from_mouseclick(center_point_vektor)
+        rotate_point_vektor = np.array([0.0, -0.02, 0.0])
+        self.calculate_koordinates_from_mouseclick(rotate_point_vektor)
+        self.dreheKamera(center_point_vektor, rotate_point_vektor)
+
 
     def setDataSet(self):
         print("Setzte Daten")
