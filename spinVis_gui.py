@@ -511,7 +511,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def wheelEvent(self, event):
         pixels = event.pixelDelta()
-        spinVis_camera.zoom(pixels.y() / 10, self.width(), self.height())
+        degrees = event.angleDelta() / 8
+        if not pixels.isNull():
+            zoom = pixels.y() / 10
+        else:
+            zoom = degrees.y() / 5
+        spinVis_camera.zoom(zoom, self.width(), self.height())
         self.camera_vektor_length = np.linalg.norm(spinVis_coor.camera_koordinates)
         # self.current_camera_vector = koor.camera_koordinates
         self.update()
