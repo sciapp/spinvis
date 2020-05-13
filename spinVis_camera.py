@@ -12,7 +12,7 @@ spin_rgb = [1.00, 1.00, 1.00]  # RGB Werte für die Pfeile im Bereich 0 bis 1 un
 projection_right = 20  # Wert des Orthographischen Quaders in Wuerfel Form
 projection_far = 400  # Laenge des Quaders
 current_path = ""  # Path Variable um den Momentanen Pfad auch nach der Auswahl zu benutzen
-is_projection = True  # If True -> Orthographic else Perspektive
+is_orthograpghic = True  # If True -> Orthographic else Perspektive
 
 
 def eingabe(pfad):
@@ -20,8 +20,11 @@ def eingabe(pfad):
 
     current_path = pfad  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
 
+    if not (pfad.endswith(".txt")):
+        return
     try:  # Es wird probiert den Pfad zu öffnen um eine Exception, bei nicht vorhandener Datei abzufangen (mit Path-Dialog eeigentlich unnötig)
         with open(pfad, 'r') as f:
+
             pass
     except FileNotFoundError:
         print("This path does not exist, please try again")
@@ -39,13 +42,44 @@ def eingabe(pfad):
                     helf[i] = float(helf[i])
                 except ValueError:
                     print("Bitte ueberpruefen Sie Ihre Eingabe")
+                    return
             mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
             direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
             symbol_of_atom.append(helf[6])  # Das letzte Element ist das Symbol des Elementes
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
+    direction_of_atom = np.array(direction_of_atom)
     fokus_punkt = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, fokus_punkt  # Tuple-Packing
+
+def args_eingabe(string):
+    global spin_rgb, spin_size, fokus_punkt
+    list = string.split("\n")
+    print(list)
+    mid_point_of_atom = []  # Erstellung der lokalen Listen
+    direction_of_atom = []
+    symbol_of_atom = []
+    for line in list:
+        line = line.strip()
+        print(line)
+        helf = line.split()  # Leerzeichen als Trennzeichen
+        print(helf)
+        for i in range(6):
+            try:
+                print(helf[i])
+                helf[i] = float(helf[i])
+            except ValueError:
+                print("Bitte ueberpruefen Sie Ihre Eingabe")
+                return
+        mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
+        direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
+        symbol_of_atom.append(helf[6])  # Das letzte Element ist das Symbol des Elementes
+    mid_point_of_atom = np.array(mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
+    direction_of_atom = np.array(direction_of_atom)
+    gr3.drawspins(mid_point_of_atom, direction_of_atom,
+                      len(mid_point_of_atom) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
+                      spin_size * 0.75, spin_size * 2.00)
+
 
 
 def set_focus_point(val_list):  # Setter Methode für Focus Point
@@ -56,7 +90,7 @@ def set_focus_point(val_list):  # Setter Methode für Focus Point
 def grSetUp(breite, hoehe):
     global up_vector, fokus_punkt, bg_rgb, projection_right, projection_far
     gr3.setbackgroundcolor(bg_rgb[0], bg_rgb[1], bg_rgb[2], bg_rgb[3])  # Hintergrundfarbe wird gesetzt
-    gr3.setcameraprojectionparameters(45, 1, 100)
+    gr3.setcameraprojectionparameters(45, 1, 200)
     gr3.setorthographicprojection(-projection_right * breite / hoehe, projection_right * breite / hoehe,
                                   -projection_right, projection_right, -projection_far,
                                   projection_far)  # Setzt Projectionstyp auf Orthographisch
@@ -88,7 +122,7 @@ def set_projection_type_orthographic():
 
 def set_projection_type_perspective():
     gr3.setprojectiontype(gr3.GR3_ProjectionType.GR3_PROJECTION_PERSPECTIVE)
-    gr3.setcameraprojectionparameters(45, 2, 100)
+    gr3.setcameraprojectionparameters(45, 2, 200)
 
 
 def grCameraArcBallChange(camera_list):
@@ -122,16 +156,9 @@ def set_spin_color(rgb_color, pixelratio):
                   spin_size * 0.75, spin_size * 2.00)
 
 
-def getUpVektor():
-    global up_vector
-    return up_vector
-
-
 def zoom(int, breite, hoehe):
-    global projection_right, fokus_punkt, is_projection
-    print()
-
-    if is_projection:
+    global projection_right, fokus_punkt, is_orthograpghic
+    if is_orthograpghic:
         projection_right += int
         gr3.setorthographicprojection(-projection_right * breite / hoehe, projection_right * breite / hoehe,
                                       -projection_right, projection_right,
@@ -141,7 +168,6 @@ def zoom(int, breite, hoehe):
         spinVis_coor.camera_koordinates += camera_to_focus_vector * (
                     int / 20)  # Addition auf Kamerapunkt mit parameter 1/10
         grCameraArcBallChange(spinVis_coor.camera_koordinates)
-    print()
 
 
 def grDrawSpin(xmax, ymax, pixelRatio):

@@ -22,7 +22,7 @@ hochdreh = 1
 class MainWindow(
     QtWidgets.QWidget):  # Klasse MainWindow ist das uebergeordnete Fenster, dass fuer Simulation und Gui unterteilt wird
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)  # Uebernahme von uebergebenen Daten
+        super().__init__(**kwargs)  # Uebernahme von uebergebenen Daten
         self._first_paint = True
         self._camera_angle = 0.0
         self.initUI()
@@ -45,13 +45,7 @@ class MainWindow(
         # self.w.l.lade_datei()
 
     def keyPressEvent(self, QKeyEvent):
-        global linksdreh, hochdreh
 
-        '''  if QKeyEvent.key() == QtCore.Qt.Key_H:                                                                          #Tastatur-Abfrage, Pfeiltasten für Kamerasteuerung ähnlich zu den Slidern, H und G zum Zoomen in perspektive und A/B zum zoomen in orthograpisch
-            test.spin_size += 0.1
-        if QKeyEvent.key() == QtCore.Qt.Key_G:
-            test.spin_size -= 0.1
-        '''
         self.gui_window.p_win.perspective_check.setFocusPolicy(Qt.NoFocus)
         self.gui_window.p_win.orthographic_check.setFocusPolicy(Qt.NoFocus)
         if QKeyEvent.key() == QtCore.Qt.Key_Right:
@@ -82,13 +76,13 @@ class GUIWindow(
     def initUI(self):
         self.pgroup = QtWidgets.QGroupBox()
         self.p_win = ProjectionWindow(self._glwindow)
-        # self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
+        self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
         self.screen_win = ScreenWindow(self._glwindow)  # Screen Boxlayout fuer Screenshot steuerung
         self.l_win = LadeWindow(self._glwindow)  # Lade Boxlayout um neuen Datensatz zu laden
         self.c_win = ColorWindow(self._glwindow)  # Color Boxlayout um Farbe für Hintergrund und Spins zu setzen
         self.vbox = QVBoxLayout()
         self.vbox.addWidget(self.p_win)
-        # self.vbox.addWidget(self.slide_win)
+        self.vbox.addWidget(self.slide_win)
         self.vbox.addWidget(self.screen_win)
         self.vbox.addWidget(self.l_win)
         self.vbox.addWidget(self.c_win)
@@ -111,7 +105,7 @@ class ProjectionWindow(QtWidgets.QWidget):  #
         self.projection_label = QtWidgets.QLabel()
         self.projection_label.setText("Choose a perspective type:")  # Pop-Up das Hilftext anzeigt
         self.projection_label.setToolTip("The projectiontype  defines how a 3D object is pictured on a 2D screen. \n"
-                                         "The parallel projection is simulating the effects of the real world. Objects \n"
+                                         "The perspektive projection is simulating the effects of the real world. Objects \n"
                                          "farther away appear smaller. The orthographic projection depicts every object \n"
                                          "with the same size. It may reveal patterns in the data, that would else remain hidden")
 
@@ -157,11 +151,11 @@ class ProjectionWindow(QtWidgets.QWidget):  #
     def radio_clicked(self):
         if self.orthographic_check.isChecked():
             # print("Orthographic")
-            spinVis_camera.is_projection = True
+            spinVis_camera.is_orthograpghic = True
             spinVis_camera.set_projection_type_orthographic()
         else:
             # print("Perspective")
-            spinVis_camera.is_projection = False
+            spinVis_camera.is_orthograpghic = False
             spinVis_camera.set_projection_type_perspective()
         self._glwindow.update()
 
@@ -199,7 +193,7 @@ class LadeWindow(QtWidgets.QWidget):
     def lade_datei(self):
         options = QtWidgets.QFileDialog.Options()  # File Dialog zum auswählen der Daten-Datei
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        eingabe, _ = QtWidgets.QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+        eingabe, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Choose your data", "",
                                                            "All Files (*);;", options=options)
         if (not eingabe):
             pass  # Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
@@ -220,6 +214,10 @@ class ColorWindow(QtWidgets.QWidget):
         self.color_hbox = QHBoxLayout()  # Hbox mt 2 Knöpfen und einem Label
         self.color_label = QLabel()
         self.color_label.setText("Choose a color:")
+        self.color_label.setToolTip("Click on either button to open a window where you can choose a color \n"
+                                    "for either the background or the spins. This color will be saved for \n"
+                                    "how long the app is running. However it will be reset if you restart \n"
+                                    "the app.")
         self.bg_color_button = QPushButton('Background', self)
         self.bg_color_button.setFixedSize(100, 30)
         self.bg_color_button.clicked.connect(self.get_bg_color)
@@ -271,8 +269,7 @@ class ScreenWindow(QtWidgets.QWidget):
         self.lbl.setToolTip("Click the button to generate a screenshot. This screenshot contains only the\n"
                             "coloured part of the window, not the gui. Currently length is the fixed size \n"
                             "of 1000 * 1000px, but we are working on a setting for that. The screenshot can \n"
-                            "either be in the PNG or the HTML-format. Latter can be opend with your browser \n"
-                            "and is currently limited to 153 spins.")
+                            "either be in the PNG or the HTML-format. Latter can be opend with your browser")
 
         self.screenbox.addWidget(self.lbl)
         self.screenbox.addWidget(self.screenbutton)
@@ -344,6 +341,8 @@ class ScreenWindow(QtWidgets.QWidget):
 
             spinVis_camera.ScreenShoot(self.fileName.text(), "html", self._glwindow.width(),
                                        self._glwindow.height())  # Test.screenshot ruft gr3.export mit html auf
+
+            self._glwindow.update()
         self.update()
         pass
 
@@ -358,7 +357,14 @@ class SliderWindow(QtWidgets.QWidget):
 
     def initUI(self):
         global sliderval, linksdreh  # Globale Variablen sliderval und linksdreh zur steuerung
-        self.hbox = QHBoxLayout()  # Beinhaltet 3 Slider, 1 zum zoomen, 1 fuer links und rechts und 1 fuer oben und unten
+        self.slidbox = QVBoxLayout() #Beinhaltet vbox und ein label
+        self.vbox = QVBoxLayout()  # Beinhaltet 2 Slider, 1 fuer links und rechts und 1 fuer oben und unten
+        self.boxlbl = QLabel()
+        self.boxlbl.setText("Slider for camera adjustment:")
+        self.boxlbl.setToolTip("You can use the silder to make slight adjustments to the camera view. \n"
+                                             "Just slide it in the direction you want the camera to change. If you are \n"
+                                             "at the end of the slider just klick on any space on the slider an you can \n"
+                                             "use it again.")
 
         self.left_right_slider_label = QtWidgets.QLabel()
         self.left_right_slider_label.setText("Horizontal Slider")
@@ -373,8 +379,8 @@ class SliderWindow(QtWidgets.QWidget):
 
         self.up_down_slider_label = QtWidgets.QLabel()
         self.up_down_slider_label.setText("Vertical Slider")
-        self.upslid = QSlider(Qt.Vertical)  # Erstellung des Hochundruntersliders
-        self.upslid.setFixedSize(50, 75)  # Kriegt feste groesse, da er sich sonst ueber ganzes fenster erstreckt
+
+        self.upslid = QSlider(Qt.Horizontal)  # Erstellung des Hochundruntersliders
         self.upslid.setValue(50)  # Startwert ist 50
         self.upslid.setFocusPolicy(Qt.NoFocus)
         self.upslid.valueChanged[int].connect(self.changeUpValue)  # Bei Aenderung wird changeUpValue aufgerufen
@@ -383,23 +389,28 @@ class SliderWindow(QtWidgets.QWidget):
         self.horizontal_slider_box.addWidget(self.upslid)
         self.horizontal_slider_box.addStretch(1)
 
-        self.hbox.addLayout(self.vertival_slider_box)
-        self.hbox.addLayout(self.horizontal_slider_box)
-        self.setLayout(self.hbox)
+        self.vbox.addLayout(self.vertival_slider_box)
+        self.vbox.addLayout(self.horizontal_slider_box)
+        self.slidbox.addWidget(self.boxlbl)
+        self.slidbox.addLayout(self.vbox)
+        self.setLayout(self.slidbox)
 
     def changeUpValue(self, value):
-        global hochdreh, linksdreh  # Globale Variable hochdreh wird benutzt und veraendert
-        hochdreh = ((
-                                value / 100) - 1) * math.pi  # Setzt den Wert des Sliders auf das Pandan zwischen 0 und pi fuer die Kugelformel
-        spinVis_camera.grCameraGuiChange(hochdreh, linksdreh)
+        global hochdreh # Globale Variable hochdreh wird benutzt und veraendert
+        if value > hochdreh:
+            self._glwindow.rotate_up()
+        else:
+            self._glwindow.rotate_down()
+        hochdreh = value  # Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
         self._glwindow.update()  # Update des Fensters um aenderung anzuszeigen
 
     def changeLeftValue(self, value):
-        global linksdreh, hochdreh  # Globale Variable linskdreh wird benutzt und veraendert
-        linksdreh = ((
-                                 value / 100) + 1) * math.pi * 2  # Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
-
-        spinVis_camera.grCameraGuiChange(hochdreh, linksdreh)
+        global linksdreh  # Globale Variable linskdreh wird benutzt und veraendert
+        if value > linksdreh:
+            self._glwindow.rotate_left()
+        else:
+            self._glwindow.rotate_right()
+        linksdreh = value  # Setzt den Wert des Sliders auf das Pandan zwischen 0 und 2*pi fuer die Kugelformel
         self._glwindow.update()  # Update des Fensters um aenderung anzuszeigen
 
 
@@ -425,6 +436,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._pressed_first_time = False
         self._maus_y = 1.0
         self._maus_z = 2.0
+        self.first_rot = True
 
         self.data_path = ""
         self.initUI()
@@ -595,6 +607,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def setDataSet(self):
         gr3.clear()  # Loecht die Drawlist vom GR3
         spinVis_camera.eingabe(self.data_path)  # Speichert die Spins aus der Eingabedatei in die Drawlist
+        spinVis_camera.grSetUp(self.width(), self.height())
         gr3.usecurrentframebuffer()
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
