@@ -1,7 +1,7 @@
 import gr3
 import gr
 import math
-import spinVis_coor
+from . import spinVis_coor
 import numpy as np
 
 fokus_punkt = [0, 0, 0]  # Punkt auf den die Kamera und das Licht zeigt

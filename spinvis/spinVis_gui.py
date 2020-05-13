@@ -3,8 +3,8 @@
 import gr3
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
-import spinVis_camera
-import spinVis_coor
+from . import spinVis_camera
+from . import spinVis_coor
 from PyQt5.QtWidgets import (QWidget,
                              QHBoxLayout, QRadioButton, QButtonGroup, QLineEdit, QVBoxLayout, QApplication, QPushButton,
                              QLabel, QSlider)  # Import der versch. QtWidgets
@@ -633,7 +633,3 @@ def main():
     mein = MainWindow()  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
     sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
