@@ -1,5 +1,21 @@
 stages:
-- deploy
+  - package
+  - deploy
+
+package:macos:
+  stage: package
+  tags:
+    - macos
+  script:
+    - cd packaging/
+    - make mac-app
+    - mv macos/SpinVis.dmg ../
+  artifacts:
+    name: "SpinVis_${CI_COMMIT_TAG}"
+    paths:
+      - ./SpinVis.dmg
+  only:
+    - tags@Scientific-IT-Systems/spinvis
 
 deploy-to-github:
   stage: deploy
