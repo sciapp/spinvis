@@ -3,11 +3,13 @@
 import gr3
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
+import os
+import gr
 from . import spinVis_camera
 from . import spinVis_coor
 from PyQt5.QtWidgets import (QWidget,
                              QHBoxLayout, QRadioButton, QButtonGroup, QLineEdit, QVBoxLayout, QApplication, QPushButton,
-                             QLabel, QSlider)  # Import der versch. QtWidgets
+                             QLabel, QSlider, QTableWidget, QTableWidgetItem)  # Import der versch. QtWidgets
 from PyQt5.QtCore import Qt
 import math
 from PyQt5.QtGui import QPixmap
@@ -19,22 +21,22 @@ hochdreh = 1
 
 # Eingabe der Datein aus tet.txt
 
-class MainWindow(
-    QtWidgets.QWidget):  # Klasse MainWindow ist das uebergeordnete Fenster, dass fuer Simulation und Gui unterteilt wird
-    def __init__(self, *args, **kwargs):
+class MainWindow(QtWidgets.QWidget):  # Klasse MainWindow ist das uebergeordnete Fenster, dass fuer Simulation und Gui unterteilt wird
+    def __init__(self,ladestyle , *args, **kwargs):
         super().__init__(**kwargs)  # Uebernahme von uebergebenen Daten
         self._first_paint = True
         self._camera_angle = 0.0
+        self.inputstyle = ladestyle
         self.initUI()
         pass
 
     def initUI(self):
-        self.setWindowTitle('SpinVis2 by PGI/JCNS-TA')
+        self.setWindowTitle('SpinVis2 by PGI/JCNS-TA test test')
         self.draw_window = GLWidget()  # Erstellung der Zwei zentralen Fenster: das GLWidget m, mit der 3D Darstellung
         self.gui_window = GUIWindow(
-            self.draw_window)  # Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
-        self.draw_window.setMinimumSize(500, 500)
-        self.gui_window.setFixedSize(400, 500)
+            self.draw_window, self.inputstyle)  # Und das GUIWindow w, dass m uebergeben bekommt um die Kameraperspektive per Regler zu veraendern
+        self.draw_window.setMinimumSize(700, 700)
+        self.gui_window.setFixedSize(550, 700)
         self.gui_window.setFocusPolicy(Qt.ClickFocus)
         self.complete_window_hbox = QHBoxLayout()  # Horizontales Layout umd beides nebeneinander zulegen
         self.complete_window_hbox.addWidget(self.draw_window)
@@ -66,10 +68,11 @@ class MainWindow(
 
 class GUIWindow(
     QtWidgets.QWidget):  # GUI Window setzt sich aus einzelnen Windows die vertikal unteieinander gelegt wurden zusammen
-    def __init__(self, glwindow, *args, **kwargs):
+    def __init__(self,glwindow, ladestyle, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._camera_angle = 0.0
         self._glwindow = glwindow  # Uebergabe des GLwindows als lokale private variable
+        self.ladestyle = ladestyle
         self.initUI()
         pass
 
@@ -78,14 +81,18 @@ class GUIWindow(
         self.p_win = ProjectionWindow(self._glwindow)
         self.slide_win = SliderWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
         self.screen_win = ScreenWindow(self._glwindow)  # Screen Boxlayout fuer Screenshot steuerung
-        self.l_win = LadeWindow(self._glwindow)  # Lade Boxlayout um neuen Datensatz zu laden
-        self.c_win = ColorWindow(self._glwindow)  # Color Boxlayout um Farbe für Hintergrund und Spins zu setzen
+        self.cs_win = SpinColorWindow(self._glwindow)
+        self.l_win = LadeWindow(self._glwindow, self.ladestyle, self.cs_win)  # Lade Boxlayout um neuen Datensatz zu laden
+        self.c_win = ColorWindow(self._glwindow, self.cs_win)  # Color Boxlayout um Farbe für Hintergrund und Spins zu setzen
+        self.v_win = VideoWindow(self._glwindow)
         self.vbox = QVBoxLayout()
         self.vbox.addWidget(self.p_win)
         self.vbox.addWidget(self.slide_win)
         self.vbox.addWidget(self.screen_win)
         self.vbox.addWidget(self.l_win)
+        self.vbox.addWidget(self.cs_win)
         self.vbox.addWidget(self.c_win)
+        self.vbox.addWidget(self.v_win)
         self.vbox.addStretch(1)
         self.setLayout(self.vbox)
         pass
@@ -165,12 +172,70 @@ class ProjectionWindow(QtWidgets.QWidget):  #
         else:
             return False
 
-
-class LadeWindow(QtWidgets.QWidget):
+class SpinColorWindow(QtWidgets.QWidget):
     def __init__(self, glwindow, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._camera_angle = 0.0
         self._glwindow = glwindow  # Uebernahme des GLWindows zur Slidersteuerung
+        self.initUI()
+        pass
+
+    def initUI(self):
+        self.table_box = QtWidgets.QVBoxLayout()
+        self.table_label = QtWidgets.QLabel()
+        self.table_label.setToolTip("Click on the cell under the symbol of the spins you want to change color.\n"
+                                    "If you use the feature further down to change the color of all sppins or \n"
+                                    "change the data set that is in use, the selection will be reseted.")
+        self.table_label.setText("Color groups of spins:")
+        self.spinner = QtWidgets.QTableWidget(0,0)
+        self.spinner.setFixedHeight(70)
+        self.table_box.addWidget(self.table_label)
+        self.table_box.addWidget(self.spinner)
+        self.spinner.clicked.connect(self.on_click)
+        self.setLayout(self.table_box)
+
+    def on_click(self):
+
+        spin_rgb = [c * 255 for c in
+                    spinVis_camera.spin_rgb]  # Umrechnung der momentanen Farbe als Stndardwert, Multiplikation der Werte von 0-1 auf 0-255
+        for currentQTableWidgetItem in self.spinner.selectedItems():
+            currentQTableWidgetItem.setSelected(False)
+            selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(*spin_rgb))
+            if selectedColor.isValid():
+                print(currentQTableWidgetItem)
+                self.spinner.item(currentQTableWidgetItem.row(), currentQTableWidgetItem.column()).setBackground(selectedColor)
+                spinVis_camera.set_symbol_spin_color(selectedColor.getRgb(), self.spinner.horizontalHeaderItem(currentQTableWidgetItem.column()).text().title())
+                self._glwindow.update()
+
+            
+
+    def fillTable(self, list):
+        symbol_list = np.array(list)
+        self.spinner.setRowCount(1)
+        self.spinner.setColumnCount(symbol_list.size)
+        i = 0
+        symbol_list_int = symbol_list.tolist()
+        for e in symbol_list_int:
+            self.spinner.setHorizontalHeaderItem(i, QTableWidgetItem(str(e)))
+            self.spinner.setItem(0,i, QTableWidgetItem(""))
+            self.spinner.item(0,i).setBackground(QtGui.QColor.fromRgb(spinVis_camera.spin_rgb[0]*255, spinVis_camera.spin_rgb[1]*255,spinVis_camera.spin_rgb[2]*255))
+            i = i+1
+
+    def color_table(self, rgb):
+        print(rgb[0], rgb[1], rgb[2])
+        print(self.spinner.columnCount().__int__())
+        for e in range(self.spinner.columnCount().__int__()):
+            self.spinner.item(0,e).setBackground(QtGui.QColor.fromRgb(rgb[0], rgb[1],rgb[2]))
+
+
+
+class LadeWindow(QtWidgets.QWidget):
+    def __init__(self, glwindow, ladestyle, spin_colour_win,*args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._camera_angle = 0.0
+        self._glwindow = glwindow  # Uebernahme des GLWindows zur Slidersteuerung
+        self.lade_style = ladestyle
+        self.spin_colour_win = spin_colour_win
         self.initUI()
         pass
 
@@ -198,15 +263,20 @@ class LadeWindow(QtWidgets.QWidget):
         if (not eingabe):
             pass  # Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
         else:
+
             self._glwindow.data_path = eingabe  # So wird der Eingabestring verwendet und der neue Datensatz gewählt
             self._glwindow.setDataSet()
+            self.spin_colour_win.fillTable(spinVis_camera.fill_table())
+
+
 
 
 class ColorWindow(QtWidgets.QWidget):
-    def __init__(self, glwindow, *args, **kwargs):
+    def __init__(self, glwindow,spin_color_window, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._camera_angle = 0.0
         self._glwindow = glwindow  # Uebernahme des GLWindows zur Slidersteuerung
+        self._spin_color_win = spin_color_window
         self.initUI()
         pass
 
@@ -244,8 +314,56 @@ class ColorWindow(QtWidgets.QWidget):
         selectedColor = QtWidgets.QColorDialog.getColor(QtGui.QColor.fromRgb(
             *spin_rgb))  # Speichert die Auswahl des Farbendialogs und setzt Standardwert auf vorher umgewandelte Farben
         if selectedColor.isValid():
+            self._spin_color_win.color_table(selectedColor.getRgb())
+            spin_rgb[0] = selectedColor.getRgb()[0] / 255
+            spin_rgb[1] = selectedColor.getRgb()[1] / 255
+            spin_rgb[2] = selectedColor.getRgb()[2] / 255
+            for i in range(len(spinVis_camera.color_of_atom)):
+                spinVis_camera.color_of_atom[i] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
             self._glwindow.set_spin_color(selectedColor.getRgb())
 
+class VideoWindow(QtWidgets.QWidget):
+    def __init__(self, glwindow, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._camera_angle = 0.0
+        self._glwindow = glwindow  # Uebernahme des GLWindows zur Slidersteuerung
+        self.initUI()
+        pass
+
+    def initUI(self):
+        self.vidbox = QHBoxLayout()
+        self.vidlabel = QLabel()
+        self.vidlabel.setText("Create a video: ")
+
+        self.namebox = QVBoxLayout()
+        self.namelabel = QLabel()
+        self.namelabel.setText("Name the video:")
+        self.vidname = QtWidgets.QTextEdit()
+        self.vidname.setFixedSize(100,25)
+        self.namebox.addWidget(self.vidlabel)
+        self.namebox.addWidget(self.vidname)
+
+        self.fpsbox = QVBoxLayout()
+        self.fpslabel = QLabel()
+        self.fpslabel.setText("FPS:")
+        self.validator = QtGui.QIntValidator(1,120,self)
+        self.fpscounter = QtWidgets.QLineEdit()
+        self.fpscounter.setValidator(self.validator)
+        self.fpscounter.setFixedSize(25,25)
+        self.fpsbox.addWidget(self.fpslabel)
+        self.fpsbox.addWidget(self.fpscounter)
+
+        self.vidbutton = QPushButton("Make a video")
+        self.vidbutton.clicked.connect(self.doVideo)
+        self.vidbox.addLayout(self.namebox)
+        self.vidbox.addLayout(self.fpsbox)
+        self.vidbox.addWidget(self.vidbutton)
+        self.setLayout(self.vidbox)
+
+    def doVideo(self):
+        print("Video")
+        self._glwindow.make_video(self.vidname.toPlainText().title(), self.fpscounter.text().title())
+        pass
 
 class ScreenWindow(QtWidgets.QWidget):
     def __init__(self, glwindow, *args, **kwargs):
@@ -418,6 +536,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._first_paint = True
+        self._make_video = False
         self._camera_angle = 0.0
         self._draw_spin = True  # Verhindert das bei jeder Kamerabewegung die Spins neu gezeichnet werden
         self._export_screen = False  # exportScreen wird beim Knopfdruck auf True gestellt und triggert so export()
@@ -437,6 +556,9 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._maus_y = 1.0
         self._maus_z = 2.0
         self.first_rot = True
+
+        self.vid_timer = QtCore.QTimer()
+        self.vid_timer.timeout.connect(self.video_connect)
 
         self.data_path = ""
         self.initUI()
@@ -471,7 +593,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
     def paintGL(self):
-
+        print("paint")
         gr3.usecurrentframebuffer()
         if self._export_screen:  # Screenshot und setzen von export screen auf False fuer neuen Durchlauf
             spinVis_camera.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
@@ -479,6 +601,14 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.drawimage(0, self.devicePixelRatio() * self.width(), 0, self.devicePixelRatio() * self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
                       gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        if self._make_video:
+            gr.clearws()
+            gr3.drawimage(0, 1, 0, 1,
+                          self.width(), self.height(),
+                          gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
+            gr.updatews()
+
+
 
     def guiCameraChange(self):
         global linksdreh, hochdreh
@@ -609,8 +739,9 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.eingabe(self.data_path)  # Speichert die Spins aus der Eingabedatei in die Drawlist
         spinVis_camera.grSetUp(self.width(), self.height())
         gr3.usecurrentframebuffer()
+        spinVis_camera.spin_rgb = [1.00, 1.00, 1.00]
+        spinVis_camera.create_color_atoms()
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
-
         self.repaint()  # Zeichnet die Spins neu
 
     def set_bg_color(self, rgb_color):
@@ -623,13 +754,41 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.update()
         pass
 
+    def make_video(self, name, fps):
+        if self._make_video == False:
+            if fps == '':
+                fps = 60
+            if name == "":
+                name = "spinvis_output"
+            vidname = str(name) + ".mp4"
+            print(vidname)
+            gr.beginprint(vidname)
+            self._make_video = True
+            print(int(1000/int(fps)))
+            self.vid_timer.start(int(1000/int(fps)))
+        else:
+            gr.endprint()
+            self._make_video = False
+            self.vid_timer.stop()
+        pass
+
+    def video_connect(self):
+        self.paintGL()
+        self.update()
+        pass
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    os.environ['GKS_WSTYPE'] = "png"
+    os.environ['GKS_VIDEO_OPTS'] = "60"
+    print("Argv",sys.argv)
+    print(sys.stdin.isatty())
+    print(sys.stdin)
     # Enable multisampling for smoother results`
     format = QtGui.QSurfaceFormat()
     format.setSamples(8)
     QtGui.QSurfaceFormat.setDefaultFormat(format)
-    mein = MainWindow()  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
+    mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
     sys.exit(app.exec_())

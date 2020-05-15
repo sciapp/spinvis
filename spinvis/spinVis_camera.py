@@ -1,6 +1,7 @@
 import gr3
 import gr
 import math
+import os
 from . import spinVis_coor
 import numpy as np
 
@@ -13,10 +14,12 @@ projection_right = 20  # Wert des Orthographischen Quaders in Wuerfel Form
 projection_far = 400  # Laenge des Quaders
 current_path = ""  # Path Variable um den Momentanen Pfad auch nach der Auswahl zu benutzen
 is_orthograpghic = True  # If True -> Orthographic else Perspektive
-
+symbol_of_atom = []
+color_of_atom = []
+first_draw = True
 
 def eingabe(pfad):
-    global fokus_punkt, current_path
+    global fokus_punkt, current_path, symbol_of_atom, color_of_atom
 
     current_path = pfad  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
 
@@ -49,8 +52,30 @@ def eingabe(pfad):
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
+    print(len(mid_point_of_atom))
+    print(len(color_of_atom))
     fokus_punkt = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, fokus_punkt  # Tuple-Packing
+
+def create_color_atoms():
+    global color_of_atom, symbol_of_atom
+
+    color_of_atom = None
+    color_of_atom = [None] * len(symbol_of_atom)
+    for k in range(len(symbol_of_atom)):
+        color_of_atom[k] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
+
+
+def fill_table():
+
+    unique_symbols = []
+    for i in symbol_of_atom:
+        if not unique_symbols.__contains__(int(i)):
+            unique_symbols.append(int(i))
+    unique_symbols = np.array(unique_symbols)
+    unique_symbols.sort()
+    return unique_symbols
+
 
 def args_eingabe(string):
     global spin_rgb, spin_size, fokus_punkt
@@ -144,8 +169,24 @@ def set_background_color(rgb_color):
     bg_rgb = [c / 255 for c in rgb_color]  # Umrechnung der Werte von 0 bis 255 zu werten im Bereich von 0 bis 1
     gr3.setbackgroundcolor(bg_rgb[0], bg_rgb[1], bg_rgb[2], bg_rgb[3])  # Hintergrundfarbe in neuen Werten setzen
 
+def set_symbol_spin_color(rgb_color, symbol):
+    global color_of_atom
+    spin_rgb[0] = rgb_color[0] / 255
+    spin_rgb[1] = rgb_color[1] / 255
+    spin_rgb[2] = rgb_color[2] / 255
+    gr3.clear()
+    a, b, c, d = eingabe(current_path)
+    for i in range(len(color_of_atom)):
+        if c[i] == symbol:
+            color_of_atom[i] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
+    for k in color_of_atom:
+        print("k", k)
+    gr3.drawspins(a, b,
+                  color_of_atom, spin_size * 0.3, spin_size * 0.1,
+                  spin_size * 0.75, spin_size * 2.00)
 
 def set_spin_color(rgb_color, pixelratio):
+    print("ring ring")
     spin_rgb[0] = rgb_color[0] / 255
     spin_rgb[1] = rgb_color[1] / 255
     spin_rgb[2] = rgb_color[2] / 255
@@ -171,11 +212,17 @@ def zoom(int, breite, hoehe):
 
 
 def grDrawSpin(xmax, ymax, pixelRatio):
-    global spin_rgb, spin_size  # Erstellung der Spins mithilfe der Tupel aus der Einlesedatei
+    global spin_rgb, spin_size, color_of_atom, first_draw  # Erstellung der Spins mithilfe der Tupel aus der Einlesedatei
     gr3.clear()
+    if first_draw:
+        first_draw = False
+        create_color_atoms()
     a, b, c, d = eingabe(current_path)
+
+    print(len(a))
+    print(len(color_of_atom))
     gr3.drawspins(a, b,
-                  len(a) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
+                  color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
     gr3.drawimage(0, xmax, 0, ymax,
                   xmax * pixelRatio, ymax * pixelRatio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
