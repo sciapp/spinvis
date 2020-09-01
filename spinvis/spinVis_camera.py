@@ -52,8 +52,6 @@ def eingabe(pfad):
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
-    print(len(mid_point_of_atom))
-    print(len(color_of_atom))
     fokus_punkt = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, fokus_punkt  # Tuple-Packing
 
@@ -67,7 +65,7 @@ def create_color_atoms():
 
 
 def fill_table():
-
+    global symbol_of_atom
     unique_symbols = []
     for i in symbol_of_atom:
         if not unique_symbols.__contains__(int(i)):
@@ -77,21 +75,20 @@ def fill_table():
     return unique_symbols
 
 
-def args_eingabe(string):
-    global spin_rgb, spin_size, fokus_punkt
-    list = string.split("\n")
-    print(list)
+def args_eingabe(string, height, width, ratio):
+    global spin_rgb, spin_size, fokus_punkt, current_path, symbol_of_atom
+    f = open("pipe_data.txt",'w')
+    list = str(string).splitlines()
+
     mid_point_of_atom = []  # Erstellung der lokalen Listen
     direction_of_atom = []
     symbol_of_atom = []
     for line in list:
         line = line.strip()
-        print(line)
+
         helf = line.split()  # Leerzeichen als Trennzeichen
-        print(helf)
         for i in range(6):
             try:
-                print(helf[i])
                 helf[i] = float(helf[i])
             except ValueError:
                 print("Bitte ueberpruefen Sie Ihre Eingabe")
@@ -99,11 +96,23 @@ def args_eingabe(string):
         mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
         direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
         symbol_of_atom.append(helf[6])  # Das letzte Element ist das Symbol des Elementes
-    mid_point_of_atom = np.array(mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
+    for i in range(len(mid_point_of_atom)):
+        midpoints = str(mid_point_of_atom[i][0]) + "\t" + str(mid_point_of_atom[i][1]) + "\t" + str(mid_point_of_atom[i][2])
+        dirctions = str(direction_of_atom[i][0]) + "\t" + str(direction_of_atom[i][1]) + "\t" + str(direction_of_atom[i][2])
+        symbols = str(symbol_of_atom[i][0])
+        print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
+    f.close()
+    current_path = "pipe_data.txt"
+    mid_point_of_atom = np.array(
+        mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
+    gr3.clear()
     gr3.drawspins(mid_point_of_atom, direction_of_atom,
                       len(mid_point_of_atom) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
                       spin_size * 0.75, spin_size * 2.00)
+    gr3.drawimage(0, height, 0, width,
+                  height * ratio, width * ratio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+
 
 
 
@@ -171,16 +180,14 @@ def set_background_color(rgb_color):
 
 def set_symbol_spin_color(rgb_color, symbol):
     global color_of_atom
-    spin_rgb[0] = rgb_color[0] / 255
-    spin_rgb[1] = rgb_color[1] / 255
-    spin_rgb[2] = rgb_color[2] / 255
+    spin_rgb[0] = int(rgb_color[0]) / 255
+    spin_rgb[1] = int(rgb_color[1]) / 255
+    spin_rgb[2] = int(rgb_color[2]) / 255
     gr3.clear()
     a, b, c, d = eingabe(current_path)
     for i in range(len(color_of_atom)):
         if c[i] == symbol:
             color_of_atom[i] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
-    for k in color_of_atom:
-        print("k", k)
     gr3.drawspins(a, b,
                   color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
@@ -218,9 +225,6 @@ def grDrawSpin(xmax, ymax, pixelRatio):
         first_draw = False
         create_color_atoms()
     a, b, c, d = eingabe(current_path)
-
-    print(len(a))
-    print(len(color_of_atom))
     gr3.drawspins(a, b,
                   color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
@@ -233,3 +237,16 @@ def ScreenShoot(name, format, width, height):
         filename = name + "." + format  # Zusammensetzung des Dateinamen aus Name.Format
         gr3.export(filename, width, height)  # Screenshoot Speicher
         print(filename, width, height)
+
+def speicher_datei():
+    global current_path
+    print(current_path)
+    if current_path != "":
+        f = open("spinvis_safe_data.txt", 'w')
+        an, bn, cn, dn = eingabe(current_path)
+        for i in range(len(an)):
+            midpoints = str(an[i][0]) + "\t" + str(an[i][1]) + "\t" + str(an[i][2])
+            dirctions = str(bn[i][0]) + "\t" + str(bn[i][1]) + "\t" + str(bn[i][2])
+            symbols = str(cn[i][0])
+            print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
+        f.close()

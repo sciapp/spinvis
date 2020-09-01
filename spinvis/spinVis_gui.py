@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import gr3
+import faulthandler
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import os
@@ -44,7 +45,8 @@ class MainWindow(QtWidgets.QWidget):  # Klasse MainWindow ist das uebergeordnete
         self.complete_window_hbox.setContentsMargins(0, 0, 0, 0)
         self.complete_window_hbox.setSpacing(0)  # Abstand 0 setzen um beides direkt nebeneinander zu haben
         self.setLayout(self.complete_window_hbox)
-        # self.w.l.lade_datei()
+
+
 
     def keyPressEvent(self, QKeyEvent):
 
@@ -185,14 +187,80 @@ class SpinColorWindow(QtWidgets.QWidget):
         self.table_label = QtWidgets.QLabel()
         self.table_label.setToolTip("Click on the cell under the symbol of the spins you want to change color.\n"
                                     "If you use the feature further down to change the color of all sppins or \n"
-                                    "change the data set that is in use, the selection will be reseted.")
+                                    "change the data set that is in use, the selection will be reseted. \n"
+                                    "If you want to load a color scheme, it must have the same list of symbols \n"
+                                    "like the one you have loaded right now. A saved color scheme can be found \n"
+                                    "under spinvis_color_safe.txt")
         self.table_label.setText("Color groups of spins:")
+        self.hori_box = QtWidgets.QHBoxLayout()
+        self.load_scheme_button = QtWidgets.QPushButton("Load scheme")
+        self.load_scheme_button.setFixedSize(130,30)
+        self.load_scheme_button.clicked.connect(self.load_color)
+        self.safe_scheme_button = QtWidgets.QPushButton("Save scheme")
+        self.safe_scheme_button.setFixedSize(130,30)
+        self.safe_scheme_button.clicked.connect(self.safe_color)
+        self.hori_box.addWidget(self.table_label)
+        self.hori_box.addWidget(self.safe_scheme_button)
+        self.hori_box.addWidget(self.load_scheme_button)
         self.spinner = QtWidgets.QTableWidget(0,0)
         self.spinner.setFixedHeight(70)
-        self.table_box.addWidget(self.table_label)
+        self.table_box.addLayout(self.hori_box)
         self.table_box.addWidget(self.spinner)
         self.spinner.clicked.connect(self.on_click)
         self.setLayout(self.table_box)
+
+    def load_color(self):
+
+        options = QtWidgets.QFileDialog.Options()  # File Dialog zum auswählen der Daten-Datei
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        eingabe, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Choose your data", "",
+                                                           "All Files (*);;", options=options)
+
+        list = []
+
+        if (not eingabe):
+            pass  # Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
+        else:
+            print("load")
+            if not (eingabe.endswith(".txt")):
+                print("not end with txt")
+                return
+            try:  # Es wird probiert den Pfad zu öffnen um eine Exception, bei nicht vorhandener Datei abzufangen (mit Path-Dialog eeigentlich unnötig)
+                with open(eingabe, 'r') as f:
+                    pass
+            except FileNotFoundError:
+                print("This path does not exist, please try again")
+                return
+            with open(eingabe,
+                      'r') as infile:  # Fuer den Bereich die Datei oeffnen, fuer jede Zeile das ganze in 3 Tupel schreiben
+                for line in infile.readlines():
+                    line = line.strip()
+                    list.append(line)
+                print(len(list), self.spinner.columnCount())
+                if len(list) == self.spinner.columnCount():
+                    i= 0
+                    for line in list:
+                        helf = line.split()  # Leerzeichen als Trennzeichen
+                        if helf[0] == self.spinner.horizontalHeaderItem(i).text().title():
+                            print("true")
+                            rgb_list = [int(helf[1]), int(helf[2]), int(helf[3])]
+                            rgb = QtGui.QColor.fromRgb(rgb_list[0], rgb_list[1], rgb_list[2])
+                            self.spinner.item(0, i).setBackground(rgb)
+                            spinVis_camera.set_symbol_spin_color([helf[1], helf[2], helf[3]], self.spinner.horizontalHeaderItem(
+                            i).text().title())
+                        i = i+1
+
+
+
+    def safe_color(self):
+        f = open("spinvis_color_safe.txt", "w")
+        for i in range(self.spinner.columnCount()):
+            symbol = self.spinner.horizontalHeaderItem(i).text().title()
+            rgbtuple = self.spinner.item(0,i).background().color().getRgb()
+
+            print(symbol + "\t" + str(rgbtuple[0]) + "\t" + str(rgbtuple[1]) + "\t" + str(rgbtuple[2]), file=f)
+        f.close()
+
 
     def on_click(self):
 
@@ -242,18 +310,27 @@ class LadeWindow(QtWidgets.QWidget):
     def initUI(self):
         self.lade_label = QtWidgets.QLabel()
         self.lade_label.setText("Load new set of spins from a txt file:")
-        self.lade_label.setToolTip("Please choose a '.txt' file that has the following structure: \n"
+        self.lade_label.setToolTip("Please choose a '.txt' file to load that has the following structure: \n"
                                    "the position of the center of the spin, the direction of the spin, a symbol. \n"
                                    "For example: -1.819     6.300   -25.500     0.022    -0.075     0.355      54. \n"
-                                   "Its important that the individual numbers are seperated by tabs. ")
+                                   "Its important that the individual numbers are seperated by tabs. \n"
+                                   "But you can also save a data file. If you do so you can find it under \n"
+                                   "spinvis_safe_data.txt.")
         self.lade_button = QPushButton('Load set', self)
-        self.lade_button.setFixedSize(100, 30)
+        self.lade_button.setFixedSize(130, 30)
         self.lade_button.clicked.connect(self.lade_datei)
+        self.speicher_button = QPushButton('Safe set', self)
+        self.speicher_button.setFixedSize(130, 30)
+        self.speicher_button.clicked.connect(self.safe_data)
         self.hbox = QHBoxLayout()  # HBox mit einem Label und einem Knopf zum Laden
-        # self.hbox.addStretch(1)
+        #self.hbox.addStretch(1)
         self.hbox.addWidget(self.lade_label)
+        self.hbox.addWidget(self.speicher_button)
         self.hbox.addWidget(self.lade_button)
         self.setLayout(self.hbox)
+
+    def safe_data(self):
+        spinVis_camera.speicher_datei()
 
     def lade_datei(self):
         options = QtWidgets.QFileDialog.Options()  # File Dialog zum auswählen der Daten-Datei
@@ -263,7 +340,6 @@ class LadeWindow(QtWidgets.QWidget):
         if (not eingabe):
             pass  # Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
         else:
-
             self._glwindow.data_path = eingabe  # So wird der Eingabestring verwendet und der neue Datensatz gewählt
             self._glwindow.setDataSet()
             self.spin_colour_win.fillTable(spinVis_camera.fill_table())
@@ -346,23 +422,46 @@ class VideoWindow(QtWidgets.QWidget):
         self.fpsbox = QVBoxLayout()
         self.fpslabel = QLabel()
         self.fpslabel.setText("FPS:")
-        self.validator = QtGui.QIntValidator(1,120,self)
+        self.validator = QtGui.QIntValidator(1, 120, self)
         self.fpscounter = QtWidgets.QLineEdit()
         self.fpscounter.setValidator(self.validator)
         self.fpscounter.setFixedSize(25,25)
         self.fpsbox.addWidget(self.fpslabel)
         self.fpsbox.addWidget(self.fpscounter)
 
+        self.resolution_validator = QtGui.QIntValidator(1, 4000, self)
+
+        self.widthbox = QVBoxLayout()
+        self.widthlabel = QLabel()
+        self.widthlabel.setText("Width: ")
+        self.vidwidth = QtWidgets.QLineEdit()
+        self.vidwidth.setValidator(self.resolution_validator)
+        self.vidwidth.setFixedSize(50, 25)
+        self.widthbox.addWidget(self.widthlabel)
+        self.widthbox.addWidget(self.vidwidth)
+
+        self.heighthbox = QVBoxLayout()
+        self.heightlabel = QLabel()
+        self.heightlabel.setText("Height: ")
+        self.vidheight = QtWidgets.QLineEdit()
+        self.vidheight.setValidator(self.resolution_validator)
+        self.vidheight.setFixedSize(50, 25)
+        self.heighthbox.addWidget(self.heightlabel)
+        self.heighthbox.addWidget(self.vidheight)
+
         self.vidbutton = QPushButton("Make a video")
         self.vidbutton.clicked.connect(self.doVideo)
         self.vidbox.addLayout(self.namebox)
         self.vidbox.addLayout(self.fpsbox)
+        self.vidbox.addLayout(self.widthbox)
+        self.vidbox.addLayout(self.heighthbox)
         self.vidbox.addWidget(self.vidbutton)
         self.setLayout(self.vidbox)
 
     def doVideo(self):
         print("Video")
-        self._glwindow.make_video(self.vidname.toPlainText().title(), self.fpscounter.text().title())
+        self._glwindow.make_video(self.vidname.toPlainText().title(), self.fpscounter.text().title(),
+                                  self.vidwidth.text().title(), self.vidheight.text().title())
         pass
 
 class ScreenWindow(QtWidgets.QWidget):
@@ -585,6 +684,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         gr3.drawimage(0, self.width(), 0, self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
                       gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+        if self._make_video:
+            gr.clearws()
+            gr3.drawimage(0, 1, 0, 1,
+                          self.width(), self.height(),
+                          gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
+            gr.updatews()
         spinVis_camera.grSetUp(self.width(), self.height())
 
         pass
@@ -593,20 +698,19 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio())
 
     def paintGL(self):
-        print("paint")
         gr3.usecurrentframebuffer()
-        if self._export_screen:  # Screenshot und setzen von export screen auf False fuer neuen Durchlauf
-            spinVis_camera.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
-            self._export_screen = False
-        gr3.drawimage(0, self.devicePixelRatio() * self.width(), 0, self.devicePixelRatio() * self.height(),
-                      self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
-                      gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
         if self._make_video:
             gr.clearws()
             gr3.drawimage(0, 1, 0, 1,
                           self.width(), self.height(),
                           gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
             gr.updatews()
+        if self._export_screen:  # Screenshot und setzen von export screen auf False fuer neuen Durchlauf
+            spinVis_camera.ScreenShoot(self.screendateiname, "png", self.height(), self.width())
+            self._export_screen = False
+        gr3.drawimage(0, self.devicePixelRatio() * self.width(), 0, self.devicePixelRatio() * self.height(),
+                      self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
+                      gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
 
 
@@ -754,18 +858,24 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self.update()
         pass
 
-    def make_video(self, name, fps):
+    def make_video(self, name, fps, res_width, res_height):
         if self._make_video == False:
             if fps == '':
                 fps = 60
+            if res_width == '':
+                res_width = 1920
+            if res_height == '':
+                res_height = 1920
             if name == "":
                 name = "spinvis_output"
             vidname = str(name) + ".mp4"
             print(vidname)
-            gr.beginprint(vidname)
             self._make_video = True
-            print(int(1000/int(fps)))
-            self.vid_timer.start(int(1000/int(fps)))
+            vidops = str(res_width) + "x" + str(res_height) + "@" + str(fps)
+            os.environ['GKS_VIDEO_OPTS'] = vidops
+            gr.beginprint(vidname)
+            self.vid_timer.start(fps/1000)
+            self.paintGL()
         else:
             gr.endprint()
             self._make_video = False
@@ -773,22 +883,27 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         pass
 
     def video_connect(self):
-        self.paintGL()
-        self.update()
+        gr.updatews()
         pass
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
     os.environ['GKS_WSTYPE'] = "png"
-    os.environ['GKS_VIDEO_OPTS'] = "60"
-    print("Argv",sys.argv)
+
+    faulthandler.enable()
+    print("Argv", sys.argv)
     print(sys.stdin.isatty())
-    print(sys.stdin)
+    print("stdin",  sys.stdin)
     # Enable multisampling for smoother results`
     format = QtGui.QSurfaceFormat()
     format.setSamples(8)
     QtGui.QSurfaceFormat.setDefaultFormat(format)
     mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
+    if sys.stdin.isatty() == True:
+        spinVis_camera.args_eingabe(sys.stdin.read(), mein.draw_window.height(), mein.draw_window.width(),
+                                mein.draw_window.devicePixelRatio())
+        spinVis_camera.create_color_atoms()
+        mein.gui_window.cs_win.fillTable(spinVis_camera.fill_table())
     sys.exit(app.exec_())
