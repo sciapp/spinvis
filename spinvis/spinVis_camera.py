@@ -1,11 +1,10 @@
 import gr3
 import gr
 import math
-import os
 from . import spinVis_coor
 import numpy as np
 
-fokus_punkt = [0, 0, 0]  # Punkt auf den die Kamera und das Licht zeigt
+focus_point = [0, 0, 0]  # Punkt auf den die Kamera und das Licht zeigt
 up_vector = [0.0, 0.0, 1.0]  # Up Vektor
 spin_size = 1  # Zoom Variable um bei belieben die Pfeile verbrössern
 bg_rgb = [0.1, 0.1, 0.4, 1]  # RGB Werte für den Hintergrund im Bereich 0 bis 1 und Deckungswert
@@ -18,15 +17,15 @@ symbol_of_atom = []
 color_of_atom = []
 first_draw = True
 
-def eingabe(pfad):
-    global fokus_punkt, current_path, symbol_of_atom, color_of_atom
+def file_input(file_path):
+    global focus_point, current_path, symbol_of_atom, color_of_atom
 
-    current_path = pfad  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
+    current_path = file_path  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
 
-    if not (pfad.endswith(".txt")):
+    if not (file_path.endswith(".txt")):
         return
     try:  # Es wird probiert den Pfad zu öffnen um eine Exception, bei nicht vorhandener Datei abzufangen (mit Path-Dialog eeigentlich unnötig)
-        with open(pfad, 'r') as f:
+        with open(file_path, 'r') as f:
 
             pass
     except FileNotFoundError:
@@ -35,7 +34,7 @@ def eingabe(pfad):
     mid_point_of_atom = []  # Erstellung der lokalen Listen
     direction_of_atom = []
     symbol_of_atom = []
-    with open(pfad,
+    with open(file_path,
               'r') as infile:  # Fuer den Bereich die Datei oeffnen, fuer jede Zeile das ganze in 3 Tupel schreiben
         for line in infile.readlines():
             line = line.strip()
@@ -44,7 +43,7 @@ def eingabe(pfad):
                 try:
                     helf[i] = float(helf[i])
                 except ValueError:
-                    print("Bitte ueberpruefen Sie Ihre Eingabe")
+                    print("Some values are not compatible, please review them and try again")
                     return
             mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
             direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
@@ -52,8 +51,8 @@ def eingabe(pfad):
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
-    fokus_punkt = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
-    return mid_point_of_atom, direction_of_atom, symbol_of_atom, fokus_punkt  # Tuple-Packing
+    focus_point = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
+    return mid_point_of_atom, direction_of_atom, symbol_of_atom, focus_point  # Tuple-Packing
 
 def create_color_atoms():
     global color_of_atom, symbol_of_atom
@@ -75,8 +74,8 @@ def fill_table():
     return unique_symbols
 
 
-def args_eingabe(string, height, width, ratio):
-    global spin_rgb, spin_size, fokus_punkt, current_path, symbol_of_atom
+def args_input(string, height, width, ratio):
+    global spin_rgb, spin_size, focus_point, current_path, symbol_of_atom
     f = open("pipe_data.txt",'w')
     list = str(string).splitlines()
 
@@ -88,12 +87,13 @@ def args_eingabe(string, height, width, ratio):
 
         helf = line.split()  # Leerzeichen als Trennzeichen
         for i in range(6):
+
             try:
                 helf[i] = float(helf[i])
             except ValueError:
-                print("Bitte ueberpruefen Sie Ihre Eingabe")
+                print("Some values are not compatible, please review them and try again")
                 return
-        mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
+        mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spaltenaa
         direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
         symbol_of_atom.append(helf[6])  # Das letzte Element ist das Symbol des Elementes
     for i in range(len(mid_point_of_atom)):
@@ -117,27 +117,27 @@ def args_eingabe(string, height, width, ratio):
 
 
 def set_focus_point(val_list):  # Setter Methode für Focus Point
-    global fokus_punkt
-    fokus_punkt = list(val_list)
+    global focus_point
+    focus_point = list(val_list)
 
 
-def grSetUp(breite, hoehe):
-    global up_vector, fokus_punkt, bg_rgb, projection_right, projection_far
+def grSetUp(width, height):
+    global up_vector, focus_point, bg_rgb, projection_right, projection_far
     gr3.setbackgroundcolor(bg_rgb[0], bg_rgb[1], bg_rgb[2], bg_rgb[3])  # Hintergrundfarbe wird gesetzt
     gr3.setcameraprojectionparameters(45, 1, 200)
-    gr3.setorthographicprojection(-projection_right * breite / hoehe, projection_right * breite / hoehe,
+    gr3.setorthographicprojection(-projection_right * width / height, projection_right * width / height,
                                   -projection_right, projection_right, -projection_far,
                                   projection_far)  # Setzt Projectionstyp auf Orthographisch
     gr3.cameralookat(spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1],
                      spinVis_coor.camera_koordinates[2],
                      # Nimmt die Camera Koordinaten aus spinVis_coor.py, fokus_punkt und up_vector wird noch de-globalisiert
-                     fokus_punkt[0], fokus_punkt[1], fokus_punkt[2],
+                     focus_point[0], focus_point[1], focus_point[2],
                      up_vector[0], up_vector[1], up_vector[2])
     gr.setviewport(0, 1, 0, 1)
 
 
 def grCameraGuiChange(azimuth, tilt):  # Camera Veränderung durch Slider und Euler Winkel
-    global up_vector, fokus_punkt
+    global up_vector, focus_point
     r = math.sqrt(
         spinVis_coor.camera_koordinates[0] * spinVis_coor.camera_koordinates[0] + spinVis_coor.camera_koordinates[1] *
         spinVis_coor.camera_koordinates[1] + spinVis_coor.camera_koordinates[2] * spinVis_coor.camera_koordinates[
@@ -146,7 +146,7 @@ def grCameraGuiChange(azimuth, tilt):  # Camera Veränderung durch Slider und Eu
     spinVis_coor.euler_angles_to_koordinates(azimuth, tilt, r)
     gr3.cameralookat(spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1],
                      spinVis_coor.camera_koordinates[2],
-                     fokus_punkt[0], fokus_punkt[1], fokus_punkt[2],
+                     focus_point[0], focus_point[1], focus_point[2],
                      up_vector[0], up_vector[1], up_vector[2])
 
 
@@ -160,9 +160,9 @@ def set_projection_type_perspective():
 
 
 def grCameraArcBallChange(camera_list):
-    global fokus_punkt
+    global focus_point
     gr3.cameralookat(camera_list[0], camera_list[1], camera_list[2],
-                     fokus_punkt[0], fokus_punkt[1], fokus_punkt[2],
+                     focus_point[0], focus_point[1], focus_point[2],
                      up_vector[0], up_vector[1], up_vector[2])
     spinVis_coor.camera_koordinates = list(camera_list)  # Übergabe der Kameraposition an spinVis_coor.py
 
@@ -184,7 +184,7 @@ def set_symbol_spin_color(rgb_color, symbol):
     spin_rgb[1] = int(rgb_color[1]) / 255
     spin_rgb[2] = int(rgb_color[2]) / 255
     gr3.clear()
-    a, b, c, d = eingabe(current_path)
+    a, b, c, d = file_input(current_path)
     for i in range(len(color_of_atom)):
         if c[i] == symbol:
             color_of_atom[i] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
@@ -193,26 +193,25 @@ def set_symbol_spin_color(rgb_color, symbol):
                   spin_size * 0.75, spin_size * 2.00)
 
 def set_spin_color(rgb_color, pixelratio):
-    print("ring ring")
     spin_rgb[0] = rgb_color[0] / 255
     spin_rgb[1] = rgb_color[1] / 255
     spin_rgb[2] = rgb_color[2] / 255
     gr3.clear()
-    a, b, c, d = eingabe(current_path)
+    a, b, c, d = file_input(current_path)
     gr3.drawspins(a, b,
                   len(a) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
 
 
 def zoom(int, breite, hoehe):
-    global projection_right, fokus_punkt, is_orthograpghic
+    global projection_right, focus_point, is_orthograpghic
     if is_orthograpghic:
         projection_right += int
         gr3.setorthographicprojection(-projection_right * breite / hoehe, projection_right * breite / hoehe,
                                       -projection_right, projection_right,
                                       -projection_far, projection_far)
     else:
-        camera_to_focus_vector = fokus_punkt - spinVis_coor.camera_koordinates  # Vektorberechnung von Kamera zu Fokuspunkt
+        camera_to_focus_vector = focus_point - spinVis_coor.camera_koordinates  # Vektorberechnung von Kamera zu Fokuspunkt
         spinVis_coor.camera_koordinates += camera_to_focus_vector * (
                     int / 20)  # Addition auf Kamerapunkt mit parameter 1/10
         grCameraArcBallChange(spinVis_coor.camera_koordinates)
@@ -224,7 +223,7 @@ def grDrawSpin(xmax, ymax, pixelRatio):
     if first_draw:
         first_draw = False
         create_color_atoms()
-    a, b, c, d = eingabe(current_path)
+    a, b, c, d = file_input(current_path)
     gr3.drawspins(a, b,
                   color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
@@ -232,18 +231,16 @@ def grDrawSpin(xmax, ymax, pixelRatio):
                   xmax * pixelRatio, ymax * pixelRatio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
 
-def ScreenShoot(name, format, width, height):
+def make_screenshot(name, format, width, height):
     if name != "":
         filename = name + "." + format  # Zusammensetzung des Dateinamen aus Name.Format
-        gr3.export(filename, width, height)  # Screenshoot Speicher
-        print(filename, width, height)
+        gr3.export(filename, width, height)  # Screenshoot Speiche
 
-def speicher_datei():
+def safe_file():
     global current_path
-    print(current_path)
     if current_path != "":
         f = open("spinvis_safe_data.txt", 'w')
-        an, bn, cn, dn = eingabe(current_path)
+        an, bn, cn, dn = file_input(current_path)
         for i in range(len(an)):
             midpoints = str(an[i][0]) + "\t" + str(an[i][1]) + "\t" + str(an[i][2])
             dirctions = str(bn[i][0]) + "\t" + str(bn[i][1]) + "\t" + str(bn[i][2])
