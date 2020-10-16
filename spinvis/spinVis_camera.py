@@ -136,20 +136,6 @@ def grSetUp(width, height):
     gr.setviewport(0, 1, 0, 1)
 
 
-def grCameraGuiChange(azimuth, tilt):  # Camera Veränderung durch Slider und Euler Winkel
-    global up_vector, focus_point
-    r = math.sqrt(
-        spinVis_coor.camera_koordinates[0] * spinVis_coor.camera_koordinates[0] + spinVis_coor.camera_koordinates[1] *
-        spinVis_coor.camera_koordinates[1] + spinVis_coor.camera_koordinates[2] * spinVis_coor.camera_koordinates[
-            2])  # Laenge des Kameravektors mit Laengenformel
-
-    spinVis_coor.euler_angles_to_koordinates(azimuth, tilt, r)
-    gr3.cameralookat(spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1],
-                     spinVis_coor.camera_koordinates[2],
-                     focus_point[0], focus_point[1], focus_point[2],
-                     up_vector[0], up_vector[1], up_vector[2])
-
-
 def set_projection_type_orthographic():
     gr3.setprojectiontype(gr3.GR3_ProjectionType.GR3_PROJECTION_ORTHOGRAPHIC)
 
@@ -197,6 +183,7 @@ def set_spin_color(rgb_color, pixelratio):
     spin_rgb[1] = rgb_color[1] / 255
     spin_rgb[2] = rgb_color[2] / 255
     gr3.clear()
+    print("Path ",current_path)
     a, b, c, d = file_input(current_path)
     gr3.drawspins(a, b,
                   len(a) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
