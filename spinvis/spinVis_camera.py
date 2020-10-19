@@ -1,6 +1,10 @@
+import atexit
 import gr3
 import gr
 import math
+import os
+import subprocess
+import tempfile
 from . import spinVis_coor
 import numpy as np
 
@@ -76,7 +80,13 @@ def fill_table():
 
 def args_input(string, height, width, ratio):
     global spin_rgb, spin_size, focus_point, current_path, symbol_of_atom
-    f = open("pipe_data.txt",'w')
+
+    spinvis_temp_dir = tempfile.TemporaryDirectory()
+
+    current_path = os.path.join(spinvis_temp_dir.name, "pipe_data.txt")
+    f = open(current_path, 'w')
+    atexit.register(spinvis_temp_dir.cleanup)
+
     list = str(string).splitlines()
 
     mid_point_of_atom = []  # Erstellung der lokalen Listen
@@ -102,7 +112,6 @@ def args_input(string, height, width, ratio):
         symbols = str(symbol_of_atom[i])
         print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
     f.close()
-    current_path = "pipe_data.txt"
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
@@ -221,7 +230,9 @@ def grDrawSpin(xmax, ymax, pixelRatio):
 def make_screenshot(name, format, width, height):
     if name != "":
         filename = name + "." + format  # Zusammensetzung des Dateinamen aus Name.Format
+        gr3.setquality(8)
         gr3.export(filename, width, height)  # Screenshoot Speiche
+        return filename
 
 def save_file():
     global current_path
@@ -234,3 +245,13 @@ def save_file():
             symbols = str(cn[i][0])
             print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
         f.close()
+
+def render_povray(povray_filepath, png_filepath=None, block=True):
+    if png_filepath is None:
+        png_filepath = os.path.splitext(povray_filepath)[0] + ".png"
+    process = subprocess.Popen(
+        ["povray", "+W1920", "+H1920", "-D", "+UA", "+A", "+R9", "+Q11", "+O{}".format(png_filepath), povray_filepath]
+    )
+    if block:
+        process.join()
+

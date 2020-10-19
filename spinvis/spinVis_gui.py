@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import os
 import gr
+import signal
 from . import spinVis_camera
 from . import spinVis_coor
 from PyQt5.QtWidgets import (QHBoxLayout, QRadioButton, QButtonGroup, QLineEdit, QVBoxLayout,  QPushButton,
@@ -540,6 +541,13 @@ class ScreenWindow(QtWidgets.QWidget):
 
         self.checkboxmanagment = QButtonGroup()  # Mit der Buttongroup werden die Radiobuttons auf exklusiv gestellt
 
+        self.povbox = QVBoxLayout()
+
+        self.povcheck = QRadioButton()
+        self.povcheck.setChecked(False)
+        self.povlabel = QLabel()
+        self.povlabel.setText("POV")
+
         self.htmlbox = QVBoxLayout()
 
         self.htmlcheck = QRadioButton()
@@ -552,13 +560,18 @@ class ScreenWindow(QtWidgets.QWidget):
 
         self.checkboxmanagment.addButton(
             self.pngcheck)  # Hinzufuegen der Radiobuttons und dann das setzen der Gruppe auf exklusiv
+        self.checkboxmanagment.addButton(self.povcheck)
         self.checkboxmanagment.addButton(self.htmlcheck)
         self.checkboxmanagment.setExclusive(True)  # Exklusiv, sodass immer nur genau ein Knopf an sein kann
+
+        self.povbox.addWidget(self.povlabel)
+        self.povbox.addWidget(self.povcheck)
 
         self.htmlbox.addWidget(self.htmllabel)
         self.htmlbox.addWidget(self.htmlcheck)
 
         self.checkboxbox.addLayout(self.pngbox)
+        self.checkboxbox.addLayout(self.povbox)
         self.checkboxbox.addLayout(self.htmlbox)
 
         self.fullbox.addLayout(self.screenbox)  # Hinzufuegen der einzelnen Boxen zu der Gesamtbox
@@ -573,17 +586,20 @@ class ScreenWindow(QtWidgets.QWidget):
         pass
 
     def doScreenshot(self):
-        if self.pngcheck.isChecked() == True:  # Wenn die Png Box an ist dann wird der Dateiname auf Variable gesetzt und das ganze anf das
+        if self.pngcheck.isChecked():  # Wenn die Png Box an ist dann wird der Dateiname auf Variable gesetzt und das ganze anf das
             dataname = self.fileName.text()  # glwindw uebergeben, da ansonsten zu fehlern kommt
             if dataname != "":
                 self._glwindow.export(dataname)
             else:
                 self.warning_box.show()
         else:
-
-            spinVis_camera.make_screenshot(self.fileName.text(), "html", 1920,
-                                           1920)  # Test.screenshot ruft gr3.export mit html auf
-
+            if self.htmlcheck.isChecked():
+                format = "html"
+            else:
+                format = "pov"
+            filename = spinVis_camera.make_screenshot(self.fileName.text(), format, 1920,
+                                           1920)  # Test.screenshot ruft gr3.export mit html/pov auf
+            spinVis_camera.render_povray(filename, block=False)
             self._glwindow.update()
         self.update()
         pass
@@ -993,10 +1009,11 @@ def main():
     QtGui.QSurfaceFormat.setDefaultFormat(format)
     mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
-    if sys.stdin.isatty() == True: #Vor Abgabe muss ein "not" zwischen if uns sys eingefügt werden
+    if sys.stdin.isatty(): #Vor Abgabe muss ein "not" zwischen if uns sys eingefügt werden
         spinVis_camera.create_color_atoms()
         spinVis_camera.args_input(sys.stdin.read(), mein.draw_window.height(), mein.draw_window.width(),
                                   mein.draw_window.devicePixelRatio())
 
         mein.gui_window.cs_win.fillTable(spinVis_camera.fill_table())
+    signal.signal(signal.SIGINT, signal.SIG_DFL)  # Allow <Ctrl-C> to quit the program
     sys.exit(app.exec_())
