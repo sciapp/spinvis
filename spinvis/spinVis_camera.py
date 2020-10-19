@@ -23,7 +23,7 @@ def file_input(file_path):
     current_path = file_path  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
 
     if not (file_path.endswith(".txt")):
-        return
+        print("False input")
     try:  # Es wird probiert den Pfad zu öffnen um eine Exception, bei nicht vorhandener Datei abzufangen (mit Path-Dialog eeigentlich unnötig)
         with open(file_path, 'r') as f:
 
@@ -99,7 +99,7 @@ def args_input(string, height, width, ratio):
     for i in range(len(mid_point_of_atom)):
         midpoints = str(mid_point_of_atom[i][0]) + "\t" + str(mid_point_of_atom[i][1]) + "\t" + str(mid_point_of_atom[i][2])
         dirctions = str(direction_of_atom[i][0]) + "\t" + str(direction_of_atom[i][1]) + "\t" + str(direction_of_atom[i][2])
-        symbols = str(symbol_of_atom[i][0])
+        symbols = str(symbol_of_atom[i])
         print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
     f.close()
     current_path = "pipe_data.txt"
@@ -223,10 +223,10 @@ def make_screenshot(name, format, width, height):
         filename = name + "." + format  # Zusammensetzung des Dateinamen aus Name.Format
         gr3.export(filename, width, height)  # Screenshoot Speiche
 
-def safe_file():
+def save_file():
     global current_path
     if current_path != "":
-        f = open("spinvis_safe_data.txt", 'w')
+        f = open("spinvis_safv_data.txt", 'w')
         an, bn, cn, dn = file_input(current_path)
         for i in range(len(an)):
             midpoints = str(an[i][0]) + "\t" + str(an[i][1]) + "\t" + str(an[i][2])

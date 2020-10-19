@@ -186,7 +186,7 @@ class SpinColorWindow(QtWidgets.QWidget):
                                     "change the data set that is in use, the selection will be reseted. \n"
                                     "If you want to load a color scheme, it must have the same list of symbols \n"
                                     "like the one you have loaded right now. A saved color scheme can be found \n"
-                                    "under spinvis_color_safe.txt")
+                                    "under spinvis_color_save.txt")
         self.groupbox = QtWidgets.QVBoxLayout()
         self.groupbox.addWidget(self.spincolorgroup)
         self.table_box = QtWidgets.QHBoxLayout()
@@ -194,11 +194,11 @@ class SpinColorWindow(QtWidgets.QWidget):
         self.load_scheme_button = QtWidgets.QPushButton("Load scheme")
         self.load_scheme_button.setFixedSize(130,30)
         self.load_scheme_button.clicked.connect(self.load_color)
-        self.safe_scheme_button = QtWidgets.QPushButton("Save scheme")
-        self.safe_scheme_button.setFixedSize(130,30)
-        self.safe_scheme_button.clicked.connect(self.safe_color)
+        self.save_scheme_button = QtWidgets.QPushButton("Save scheme")
+        self.save_scheme_button.setFixedSize(130,30)
+        self.save_scheme_button.clicked.connect(self.save_color)
 
-        self.button_box.addWidget(self.safe_scheme_button)
+        self.button_box.addWidget(self.save_scheme_button)
         self.button_box.addWidget(self.load_scheme_button)
         self.color_table = QtWidgets.QTableWidget(0, 0)
         self.color_table.setFixedHeight(70)
@@ -247,8 +247,8 @@ class SpinColorWindow(QtWidgets.QWidget):
                             i).text().title())
                         i = i+1
 
-    def safe_color(self):
-        f = open("spinvis_color_safe.txt", "w")
+    def save_color(self):
+        f = open("spinvis_color_save.txt", "w")
         for i in range(self.color_table.columnCount()):
             symbol = self.color_table.horizontalHeaderItem(i).text().title()
             rgbtuple = self.color_table.item(0, i).background().color().getRgb()
@@ -305,7 +305,7 @@ class DataLoadWindow(QtWidgets.QWidget):
                                    "For example: -1.819     6.300   -25.500     0.022    -0.075     0.355      54. \n"
                                    "Its important that the individual numbers are seperated by tabs. \n"
                                    "But you can also save a data file. If you do so you can find it under \n"
-                                   "spinvis_safe_data.txt.")
+                                   "spinvis_save_data.txt.")
         self.groupbox = QtWidgets.QVBoxLayout()
         self.groupbox.addWidget(self.loadgroup)
         self.load_label = QtWidgets.QLabel()
@@ -313,20 +313,20 @@ class DataLoadWindow(QtWidgets.QWidget):
         self.load_button = QPushButton('Load set', self)
         self.load_button.setFixedSize(130, 30)
         self.load_button.clicked.connect(self.load_file)
-        self.safe_button = QPushButton('Safe set', self)
-        self.safe_button.setFixedSize(130, 30)
-        self.safe_button.clicked.connect(self.safe_data)
+        self.save_button = QPushButton('Save set', self)
+        self.save_button.setFixedSize(130, 30)
+        self.save_button.clicked.connect(self.save_data)
         self.hbox = QHBoxLayout()  # HBox mit einem Label und einem Knopf zum Laden
         #self.hbox.addStretch(1)
         self.hbox.addWidget(self.load_label)
-        self.hbox.addWidget(self.safe_button)
+        self.hbox.addWidget(self.save_button)
         self.hbox.addWidget(self.load_button)
         self.loadgroup.setLayout(self.hbox)
         self.groupbox.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.groupbox)
 
-    def safe_data(self):
-        spinVis_camera.safe_file()
+    def save_data(self):
+        spinVis_camera.save_file()
 
     def load_file(self):
         options = QtWidgets.QFileDialog.Options()  # File Dialog zum auswählen der Daten-Datei
@@ -337,7 +337,17 @@ class DataLoadWindow(QtWidgets.QWidget):
             pass  # Falls nichts ausgewählt wird, wird kein neuer Datensatz gewählt
         else:
             self._glwindow.data_path = input  # So wird der Eingabestring verwendet und der neue Datensatz gewählt
-            self._glwindow.setDataSet()
+            try:
+                self._glwindow.setDataSet()
+            except TypeError:
+                typ_err_box = QtWidgets.QMessageBox()
+                typ_err_box.setIcon(2)  # Gives warning Icon
+                typ_err_box.setText("Error ocurred while trying to load a data set!")
+                typ_err_box.setInformativeText(
+                    "Something went wrong trying to open the data file. Please make sure that the the selected file is a '.txt'-file with the schematic"
+                    " described in the tooltip.")
+                typ_err_box.exec_()
+
             self.spin_colour_win.fillTable(spinVis_camera.fill_table())
 
 
@@ -571,8 +581,8 @@ class ScreenWindow(QtWidgets.QWidget):
                 self.warning_box.show()
         else:
 
-            spinVis_camera.make_screenshot(self.fileName.text(), "html", self._glwindow.width(),
-                                           self._glwindow.height())  # Test.screenshot ruft gr3.export mit html auf
+            spinVis_camera.make_screenshot(self.fileName.text(), "html", 1920,
+                                           1920)  # Test.screenshot ruft gr3.export mit html auf
 
             self._glwindow.update()
         self.update()
@@ -758,7 +768,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                           gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
             gr.updatews()
         if self._export_screen:  # Screenshot und setzen von export screen auf False fuer neuen Durchlauf
-            spinVis_camera.make_screenshot(self.screendateiname, "png", self.height(), self.width())
+            spinVis_camera.make_screenshot(self.screendateiname, "png", 1920, 1920)
             self._export_screen = False
         gr3.drawimage(0, self.devicePixelRatio() * self.width(), 0, self.devicePixelRatio() * self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
@@ -830,7 +840,6 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         return up_vector / np.linalg.norm(up_vector)
 
     def change_camera(self, start_point, end_point):
-        global left_turn, up_turn
         i = 0
         self.new_up_v = self.recalculate_up_vector(spinVis_coor.camera_koordinates,
                                                    self.new_up_v)  # Update des up Vektors
@@ -949,7 +958,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             vidops = str(res_width) + "x" + str(res_height) + "@" + str(fps)
             os.environ['GKS_VIDEO_OPTS'] = vidops
             gr.beginprint(vidname)
-            self.vid_timer.start(fps/1000)
+            try:
+                fps_as_int = int(fps)
+            except ValueError:
+                print("Changed")
+                fps_as_int = 60
+            self.vid_timer.start(fps_as_int/1000)
             self.paintGL()
         else:
             gr.endprint()
@@ -970,7 +984,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    os.environ['GKS_WSTYPE'] = "png"
+    os.environ['GKS_WSTYPE'] = "nul"
 
     faulthandler.enable()
     # Enable multisampling for smoother results`
@@ -979,9 +993,10 @@ def main():
     QtGui.QSurfaceFormat.setDefaultFormat(format)
     mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
-    if sys.stdin.isatty() == True:
+    if sys.stdin.isatty() == True: #Vor Abgabe muss ein "not" zwischen if uns sys eingefügt werden
+        spinVis_camera.create_color_atoms()
         spinVis_camera.args_input(sys.stdin.read(), mein.draw_window.height(), mein.draw_window.width(),
                                   mein.draw_window.devicePixelRatio())
-        spinVis_camera.create_color_atoms()
+
         mein.gui_window.cs_win.fillTable(spinVis_camera.fill_table())
     sys.exit(app.exec_())
