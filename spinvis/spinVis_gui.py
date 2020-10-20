@@ -1009,7 +1009,7 @@ def main():
     QtGui.QSurfaceFormat.setDefaultFormat(format)
     mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
-    if sys.stdin.isatty(): #Vor Abgabe muss ein "not" zwischen if uns sys eingefügt werden
+    if not sys.stdin.isatty():
         spinVis_camera.create_color_atoms()
         spinVis_camera.args_input(sys.stdin.read(), mein.draw_window.height(), mein.draw_window.width(),
                                   mein.draw_window.devicePixelRatio())
