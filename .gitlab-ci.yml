@@ -12,10 +12,11 @@ package:macos:
     - make mac-app
     - mv macos/SpinVis.dmg ../
   artifacts:
-    name: "SpinVis_${CI_COMMIT_TAG}"
+    name: "SpinVis_$([[ -n ${CI_COMMIT_TAG} ]] && echo ${CI_COMMIT_TAG} || echo $(git describe --long --tags --always))"
     paths:
       - ./SpinVis.dmg
   only:
+    - develop@Scientific-IT-Systems/spinvis
     - tags@Scientific-IT-Systems/spinvis
 
 deploy-to-github:
