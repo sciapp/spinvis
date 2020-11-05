@@ -24,7 +24,7 @@ setup(
     version=version,
     packages=find_packages(),
     python_requires="~=3.3",
-    install_requires=["gr", "numpy", "PyQt5"],
+    install_requires=["gr", "numpy", "PyQt5", "scipy"],
     entry_points={"console_scripts": ["spinvis = spinvis.spinVis_gui:main"]},
     author="Jonas Mölle",
     author_email="j.moelle@fz-juelich.de",
