@@ -26,10 +26,12 @@ bond_vectors = None
 bond_lengths = None
 bond_directions = None
 bond_color = [0.5, 0.5, 0.5]  # RGB color of bond cylinders
+bond_distance_threshold = None
+bond_distance_threshold_callback = None
 first_draw = True
 
 def file_input(file_path):
-    global focus_point, current_path, symbol_of_atom, color_of_atom
+    global focus_point, current_path, symbol_of_atom, color_of_atom, bond_distance_threshold
 
     current_path = file_path  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
 
@@ -63,23 +65,37 @@ def file_input(file_path):
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
     focus_point = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
+    bond_distance_threshold = None
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, focus_point  # Tuple-Packing
 
 
 def calculate_bonds(spin_positions, distance_threshold=None):
-    global bond_indices, bond_positions, bond_vectors, bond_lengths, bond_directions
+    global bond_indices, bond_positions, bond_vectors, bond_lengths, bond_directions, bond_distance_threshold
 
-    distances = cdist(spin_positions, spin_positions, "sqeuclidean")
-    if distance_threshold is None:
-        upper_triangle_indices = np.triu_indices(spin_positions.shape[0], k=1)
-        min_distance = math.sqrt(np.min(distances[upper_triangle_indices]))
-        distance_threshold = 1.5 * min_distance
-    squared_distance_threshold = distance_threshold ** 2
-    bond_indices = [(i, j) for i, j in zip(*np.where(distances < squared_distance_threshold)) if j > i]
-    bond_positions = np.take(spin_positions, [i for i, _ in bond_indices], axis=0)
-    bond_vectors = np.take(spin_positions, [j for _, j in bond_indices], axis=0) - bond_positions
-    bond_lengths = np.linalg.norm(bond_vectors, axis=1)[:, np.newaxis]
-    bond_directions = bond_vectors / bond_lengths
+    if len(spin_positions) < 2:
+        bond_indices = None
+        bond_positions = None
+        bond_vectors = None
+        bond_lengths = None
+        bond_directions = None
+    else:
+        distances = cdist(spin_positions, spin_positions, "sqeuclidean")
+        distances[distances < np.finfo(np.float).eps] = np.inf
+        if distance_threshold is None:
+            if bond_distance_threshold is None:
+                upper_triangle_indices = np.triu_indices(spin_positions.shape[0], k=1)
+                min_distance = math.sqrt(np.min(distances[upper_triangle_indices]))
+                distance_threshold = 1.5 * min_distance
+            else:
+                distance_threshold = bond_distance_threshold
+        if bond_distance_threshold_callback is not None:
+            bond_distance_threshold_callback(distance_threshold)
+        squared_distance_threshold = distance_threshold ** 2
+        bond_indices = [(i, j) for i, j in zip(*np.where(distances < squared_distance_threshold)) if j > i]
+        bond_positions = np.take(spin_positions, [i for i, _ in bond_indices], axis=0)
+        bond_vectors = np.take(spin_positions, [j for _, j in bond_indices], axis=0) - bond_positions
+        bond_lengths = np.linalg.norm(bond_vectors, axis=1)[:, np.newaxis]
+        bond_directions = bond_vectors / bond_lengths
 
 
 def create_color_atoms():
@@ -144,8 +160,9 @@ def args_input(string, height, width, ratio):
     gr3.drawspins(mid_point_of_atom, direction_of_atom,
                       len(mid_point_of_atom) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
                       spin_size * 0.75, spin_size * 2.00)
-    gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
-                         len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
+    if bond_indices is not None:
+        gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
+                            len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
     gr3.drawimage(0, height, 0, width,
                   height * ratio, width * ratio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
@@ -213,8 +230,9 @@ def set_symbol_spin_color(rgb_color, symbol):
     gr3.drawspins(a, b,
                   color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
-    gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
-                         len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
+    if bond_indices is not None:
+        gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
+                            len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
 
 def set_spin_color(rgb_color, pixelratio):
     spin_rgb[0] = rgb_color[0] / 255
@@ -226,8 +244,9 @@ def set_spin_color(rgb_color, pixelratio):
     gr3.drawspins(a, b,
                   len(a) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
-    gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
-                         len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
+    if bond_indices is not None:
+        gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
+                            len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
 
 
 def zoom(int, breite, hoehe):
@@ -256,10 +275,9 @@ def grDrawSpin(xmax, ymax, pixelRatio):
     gr3.drawspins(a, b,
                   color_of_atom, spin_size * 0.3, spin_size * 0.1,
                   spin_size * 0.75, spin_size * 2.00)
-    gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
-                         len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
-    gr3.drawimage(0, xmax, 0, ymax,
-                  xmax * pixelRatio, ymax * pixelRatio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
+    if bond_indices is not None:
+        gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
+                            len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
 
 
 def make_screenshot(name, format, width, height):
