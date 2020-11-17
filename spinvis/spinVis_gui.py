@@ -75,6 +75,7 @@ class GUIWindow(
         self.pgroup = QtWidgets.QGroupBox()
         self.p_win = ProjectionWindow(self._glwindow)
         self.slide_win = AngleWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
+        self.bond_win = BondWindow(self._glwindow)
         self.screen_win = ScreenWindow(self._glwindow)  # Screen Boxlayout fuer Screenshot steuerung
         self.cs_win = SpinColorWindow(self._glwindow)
         self.l_win = DataLoadWindow(self._glwindow, self.ladestyle, self.cs_win)  # Lade Boxlayout um neuen Datensatz zu laden
@@ -83,6 +84,7 @@ class GUIWindow(
         self.vbox = QVBoxLayout()
         self.vbox.addWidget(self.p_win)
         self.vbox.addWidget(self.slide_win)
+        self.vbox.addWidget(self.bond_win)
         self.vbox.addWidget(self.screen_win)
         self.vbox.addWidget(self.l_win)
         self.vbox.addWidget(self.cs_win)
@@ -700,6 +702,58 @@ class AngleWindow(QtWidgets.QWidget):
             val_err_box.setInformativeText("Your entred value was not a floating number. Please make sure that your input is right, before trying to change the camera.")
             val_err_box.exec_()
 
+
+class BondWindow(QtWidgets.QWidget):
+    def __init__(self, glwindow, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._distance_threshold = 0.0
+        self._glwindow = glwindow  # Uebergabe des glwindow
+        self.initUI()
+        spinVis_camera.bond_distance_threshold_callback = lambda value: self.threshold_input.setText(str(round(value, 5)))
+
+    def initUI(self):
+        self.bondgroup = QtWidgets.QGroupBox("Bond Window")
+
+        self.bondgroup.setTitle("Bond Window")
+        self.bondgroup.setToolTip("Set a distance threshold for bond calculation. The default value is 150 per cent\n"
+                                  "of the minimum distance between the centers of two spins.")
+        self.groupbox = QtWidgets.QHBoxLayout()
+        self.groupbox.addWidget(self.bondgroup)
+        self.bondbox = QHBoxLayout()
+
+        self.threshold_box = QHBoxLayout()
+        self.threshold_lbl = QLabel()
+        self.threshold_lbl.setText("Distance threshold: ")
+        self.threshold_input = QtWidgets.QLineEdit()
+        self.threshold_input.setFixedSize(70, 25)
+        self.threshold_input.returnPressed.connect(self.update_bond_distance_threshold)
+        self.threshold_box.addWidget(self.threshold_lbl)
+        self.threshold_box.addWidget(self.threshold_input)
+        self.threshold_validator = QtGui.QDoubleValidator(0.0, float("inf"), 5, self)
+        self.threshold_input.setValidator(self.threshold_validator)
+
+        self.bond_button = QPushButton("Set threshold")
+        self.bond_button.setMaximumSize(150, 25)
+        self.bond_button.clicked.connect(self.update_bond_distance_threshold)
+
+        self.bondbox.addLayout(self.threshold_box)
+        self.bondbox.addWidget(self.bond_button)
+        self.bondgroup.setLayout(self.bondbox)
+        self.groupbox.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.groupbox)
+
+    def update_bond_distance_threshold(self):
+        try:
+            threshold = float(self.threshold_input.text())
+            spinVis_camera.bond_distance_threshold = threshold
+            self._glwindow.spinDraw()
+            self._glwindow.update()
+        except ValueError:
+            val_err_box = QtWidgets.QMessageBox()
+            val_err_box.setIcon(2)  # Gives warning Icon
+            val_err_box.setText("Error ocurred while trying to recalculate the bonds!")
+            val_err_box.setInformativeText("Your entred value was not a floating number. Please make sure that your input is right, before trying to change the bond distance threshold.")
+            val_err_box.exec_()
 
 
 class GLWidget(QtWidgets.QOpenGLWidget):
