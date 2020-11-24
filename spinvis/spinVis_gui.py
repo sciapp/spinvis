@@ -9,7 +9,7 @@ import gr
 import signal
 from . import spinVis_camera
 from . import spinVis_coor
-from PyQt5.QtWidgets import (QHBoxLayout, QRadioButton, QButtonGroup, QLineEdit, QVBoxLayout,  QPushButton,
+from PyQt5.QtWidgets import (QHBoxLayout, QCheckBox, QRadioButton, QButtonGroup, QLineEdit, QVBoxLayout,  QPushButton,
                              QLabel, QTableWidgetItem)  # Import der versch. QtWidgets
 from PyQt5.QtCore import Qt
 import math
@@ -722,15 +722,16 @@ class BondWindow(QtWidgets.QWidget):
         self.bondbox = QHBoxLayout()
 
         self.threshold_box = QHBoxLayout()
+        self.threshold_checkbox = QCheckBox("Show bonds")
+        self.threshold_checkbox.stateChanged.connect(self.update_bond_distance_threshold)
         self.threshold_lbl = QLabel()
         self.threshold_lbl.setText("Distance threshold: ")
         self.threshold_input = QtWidgets.QLineEdit()
         self.threshold_input.setFixedSize(70, 25)
         self.threshold_input.returnPressed.connect(self.update_bond_distance_threshold)
+        self.threshold_box.addWidget(self.threshold_checkbox)
         self.threshold_box.addWidget(self.threshold_lbl)
         self.threshold_box.addWidget(self.threshold_input)
-        self.threshold_validator = QtGui.QDoubleValidator(0.0, float("inf"), 5, self)
-        self.threshold_input.setValidator(self.threshold_validator)
 
         self.bond_button = QPushButton("Set threshold")
         self.bond_button.setMaximumSize(150, 25)
@@ -744,8 +745,12 @@ class BondWindow(QtWidgets.QWidget):
 
     def update_bond_distance_threshold(self):
         try:
-            threshold = float(self.threshold_input.text())
-            spinVis_camera.bond_distance_threshold = threshold
+            if self.threshold_input.text().strip() != "":
+                threshold = float(self.threshold_input.text())
+                spinVis_camera.bond_distance_threshold = threshold
+            else:
+                spinVis_camera.bond_distance_threshold = None
+            spinVis_camera.bond_is_activated = self.threshold_checkbox.isChecked()
             self._glwindow.spinDraw()
             self._glwindow.update()
         except ValueError:

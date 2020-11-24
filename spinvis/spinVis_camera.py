@@ -26,6 +26,7 @@ bond_vectors = None
 bond_lengths = None
 bond_directions = None
 bond_color = [0.5, 0.5, 0.5]  # RGB color of bond cylinders
+bond_is_activated = False
 bond_distance_threshold = None
 bond_distance_threshold_callback = None
 first_draw = True
@@ -65,14 +66,13 @@ def file_input(file_path):
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
     focus_point = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
-    bond_distance_threshold = None
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, focus_point  # Tuple-Packing
 
 
 def calculate_bonds(spin_positions, distance_threshold=None):
     global bond_indices, bond_positions, bond_vectors, bond_lengths, bond_directions, bond_distance_threshold
 
-    if len(spin_positions) < 2:
+    if len(spin_positions) < 2 or not bond_is_activated:
         bond_indices = None
         bond_positions = None
         bond_vectors = None
