@@ -792,6 +792,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
 
         self.data_path = ""
+        self.setAcceptDrops(True)
         self.initUI()
         pass
 
@@ -799,6 +800,20 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         self._export_screen = True
         self.screendateiname = stringname  # Benutzt den uebergebenen dateinamen
         self.update()
+
+    def dragEnterEvent(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == "file":
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == "file":
+            filepath = str(urls[0].path())
+            self.data_path = filepath
+            self.setDataSet()
 
     def initUI(self):
         x = 0
