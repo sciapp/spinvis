@@ -9,7 +9,7 @@ from . import spinVis_coor
 import numpy as np
 from scipy.spatial.distance import cdist
 
-focus_point = [0, 0, 0]  # Punkt auf den die Kamera und das Licht zeigt
+focus_point = np.array([0, 0, 0])  # Punkt auf den die Kamera und das Licht zeigt
 up_vector = [0.0, 0.0, 1.0]  # Up Vektor
 spin_size = 1  # Zoom Variable um bei belieben die Pfeile verbrössern
 bg_rgb = [0.1, 0.1, 0.4, 1]  # RGB Werte für den Hintergrund im Bereich 0 bis 1 und Deckungswert
@@ -29,6 +29,77 @@ bond_color = [0.5, 0.5, 0.5]  # RGB color of bond cylinders
 bond_distance_threshold = None
 bond_distance_threshold_callback = None
 first_draw = True
+
+
+def spin_sphere_input(file_path):
+    global focus_point, current_path, symbol_of_atom, color_of_atom
+
+    current_path = file_path  # Setzt den momentanen Pfad auf die Eingabe, sodass die Methode für die Ausgaben mit dem selben Pfad spaeter nochmal aufgerufen werden können
+
+    if not (file_path.endswith(".txt")):
+        print("False input")
+    try:  # Es wird probiert den Pfad zu öffnen um eine Exception, bei nicht vorhandener Datei abzufangen (mit Path-Dialog eeigentlich unnötig)
+        with open(file_path, 'r') as f:
+
+            pass
+    except FileNotFoundError:
+        print("This path does not exist, please try again")
+        return
+    mid_point_of_atom = []  # Erstellung der lokalen Listen
+    direction_of_atom = []
+    symbol_of_atom = []
+    mid_point_of_sphere = []
+    radius_of_sphere = []
+    symbol_of_sphere = []
+    is_kugel = False
+    with open(file_path,
+              'r') as infile:  # Fuer den Bereich die Datei oeffnen, fuer jede Zeile das ganze in 3 Tupel schreiben
+        for line in infile.readlines():
+
+            if "spin" in line:
+                pass
+            elif "kugel" in line and is_kugel == False:
+                is_kugel = True
+            elif "kugel" not in line and is_kugel == False:
+                line = line.strip()
+                helf = line.split()  # Leerzeichen als Trennzeichen
+                for i in range(8):
+                    try:
+                        helf[i] = float(helf[i])
+                    except ValueError:
+                        print("Some values are not compatible, please review them and try again")
+                        return
+                mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
+                direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
+                symbol_of_atom.append(
+                    np.array([helf[6], helf[7], helf[8]]))  # Das letzte Element ist das Symbol des Elementes
+            else:
+                line = line.strip()
+                helf = line.split()  # Leerzeichen als Trennzeichen
+                for i in range(7):
+                    try:
+                        helf[i] = float(helf[i])
+                    except ValueError:
+                        print("Some values are not compatible, please review them and try again")
+                        return
+                mid_point_of_sphere.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
+                radius_of_sphere.append(helf[3])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
+                symbol_of_sphere.append(
+                    np.array([helf[4], helf[5], helf[6]]))
+
+    mid_point_of_atom = np.array(
+        mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
+    direction_of_atom = np.array(direction_of_atom)
+    symbol_of_atom = np.array(symbol_of_atom)
+    mid_point_of_sphere = np.array(
+        mid_point_of_sphere)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
+    radius_of_sphere = np.array(radius_of_sphere)
+    symbol_of_sphere = np.array(symbol_of_sphere)
+
+    focus_point = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
+    return mid_point_of_atom, direction_of_atom, symbol_of_atom, mid_point_of_sphere, radius_of_sphere, symbol_of_sphere, focus_point  # Tuple-Packing
+
+
 
 def file_input(file_path):
     global focus_point, current_path, symbol_of_atom, color_of_atom, bond_distance_threshold
@@ -60,10 +131,11 @@ def file_input(file_path):
                     return
             mid_point_of_atom.append(helf[0:3])  # Der Mittelpunkt des Atoms sind die ersten 3 Spalten
             direction_of_atom.append(helf[3:6])  # Die Richtung des Atoms als Punkt mit den 2ten 3 Spalten
-            symbol_of_atom.append(helf[6])  # Das letzte Element ist das Symbol des Elementes
+            symbol_of_atom.append(np.array([helf[6], helf[7], helf[8]]))  # Das letzte Element ist das Symbol des Elementes
     mid_point_of_atom = np.array(
         mid_point_of_atom)  # Parse die Liste auf numpy Array um Zugriff auf .max(axis=0) zu bekomme
     direction_of_atom = np.array(direction_of_atom)
+    symbol_of_atom = np.array(symbol_of_atom)
     focus_point = mid_point_of_atom.max(axis=0) / 2 + mid_point_of_atom.min(axis=0) / 2
     bond_distance_threshold = None
     return mid_point_of_atom, direction_of_atom, symbol_of_atom, focus_point  # Tuple-Packing
@@ -109,13 +181,12 @@ def create_color_atoms():
 
 def fill_table():
     global symbol_of_atom
-    unique_symbols = []
-    for i in symbol_of_atom:
-        if not unique_symbols.__contains__(int(i)):
-            unique_symbols.append(int(i))
-    unique_symbols = np.array(unique_symbols)
-    unique_symbols.sort()
-    return unique_symbols
+    symb_set =  np.unique(symbol_of_atom, axis=0)
+    f = open("sumboltest.txt", 'w')
+    for e in symb_set:
+
+        print(e, file=f)
+    return symb_set
 
 
 def args_input(string, height, width, ratio):
@@ -198,6 +269,12 @@ def set_projection_type_perspective():
     gr3.setcameraprojectionparameters(45, 2, 200)
 
 
+def grLookAt():
+    global focus_point
+    gr3.cameralookat(spinVis_coor.camera_koordinates[0], spinVis_coor.camera_koordinates[1], spinVis_coor.camera_koordinates[2],
+                     focus_point[0], focus_point[1], focus_point[2],
+                     up_vector[0], up_vector[1], up_vector[2])
+
 def grCameraArcBallChange(camera_list):
     global focus_point
     gr3.cameralookat(camera_list[0], camera_list[1], camera_list[2],
@@ -239,7 +316,6 @@ def set_spin_color(rgb_color, pixelratio):
     spin_rgb[1] = rgb_color[1] / 255
     spin_rgb[2] = rgb_color[2] / 255
     gr3.clear()
-    print("Path ",current_path)
     a, b, c, d = file_input(current_path)
     gr3.drawspins(a, b,
                   len(a) * [(spin_rgb[0], spin_rgb[1], spin_rgb[2])], spin_size * 0.3, spin_size * 0.1,
@@ -256,28 +332,54 @@ def zoom(int, breite, hoehe):
         gr3.setorthographicprojection(-projection_right * breite / hoehe, projection_right * breite / hoehe,
                                       -projection_right, projection_right,
                                       -projection_far, projection_far)
+
     else:
-        camera_to_focus_vector = focus_point - spinVis_coor.camera_koordinates  # Vektorberechnung von Kamera zu Fokuspunkt
+        camera_to_focus_vector = np.array(focus_point) - np.array(spinVis_coor.camera_koordinates)  # Vektorberechnung von Kamera zu Fokuspunkt
         spinVis_coor.camera_koordinates += camera_to_focus_vector * (
                     int / 20)  # Addition auf Kamerapunkt mit parameter 1/10
         grCameraArcBallChange(spinVis_coor.camera_koordinates)
 
 
-def grDrawSpin(xmax, ymax, pixelRatio):
+def grDrawSpin(xmax, ymax, pixelRatio, is_sphere):
     global spin_rgb, spin_size, color_of_atom, first_draw  # Erstellung der Spins mithilfe der Tupel aus der Einlesedatei
 
     gr3.clear()
     if first_draw:
         first_draw = False
         create_color_atoms()
-    a, b, c, d = file_input(current_path)
+
+
+    #a, b, c, d = file_input(current_path)
+    a, b, c, d, e, f, g = spin_sphere_input(current_path)
     calculate_bonds(a)
-    gr3.drawspins(a, b,
-                  color_of_atom, spin_size * 0.3, spin_size * 0.1,
-                  spin_size * 0.75, spin_size * 2.00)
+    spin_rgb_divided = []
+    for ele in c:
+        t1 = float(ele[0])/255
+        t2 = float(ele[1])/255
+        t3 = float(ele[2])/255
+        spin_rgb_divided.append([t1,t2,t3])
+    sphere_rgb_divided = []
+    for ele in f:
+        t1 = float(ele[0])/255
+        t2 = float(ele[1])/255
+        t3 = float(ele[2])/255
+        sphere_rgb_divided.append([t1,t2,t3])
+
+    print(bond_indices)
     if bond_indices is not None:
         gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
-                            len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
+                             len(bond_indices) * (0.1 * spin_size,), bond_lengths)
+
+
+    gr3.drawspins(a, b,
+                  spin_rgb_divided, spin_size * 0.3, spin_size * 0.1,
+                  spin_size * 0.75, spin_size * 2.00)
+
+    if is_sphere:
+
+        gr3.drawspheremesh(len(d),d , sphere_rgb_divided, e*5)
+    gr3.drawimage(0, xmax, 0, ymax,
+                  xmax * pixelRatio, ymax * pixelRatio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
 
 def make_screenshot(name, format, width, height):
@@ -298,6 +400,16 @@ def save_file():
             symbols = str(cn[i][0])
             print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
         f.close()
+
+def render_povray(povray_filepath, png_filepath=None, block=True):
+    if png_filepath is None:
+        png_filepath = os.path.splitext(povray_filepath)[0] + ".png"
+    process = subprocess.Popen(
+        ["povray", "+W1920", "+H1920", "-D", "+UA", "+A", "+R9", "+Q11", "+O{}".format(png_filepath), povray_filepath]
+    )
+    if block:
+        process.join()
+
 
 def render_povray(povray_filepath, png_filepath=None, block=True):
     if png_filepath is None:
