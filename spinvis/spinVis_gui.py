@@ -84,6 +84,7 @@ class GUIWindow(
         self.pgroup = QtWidgets.QGroupBox()
         self.p_win = ProjectionWindow(self._glwindow)
         self.slide_win = AngleWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
+        self.t_win = TranslationWindow(self._glwindow)
         self.bond_win = BondWindow(self._glwindow)
         self.screen_win = ScreenWindow(self._glwindow)  # Screen Boxlayout fuer Screenshot steuerung
         self.cs_win = SpinColorWindow(self._glwindow)
@@ -93,6 +94,7 @@ class GUIWindow(
         self.vbox = QVBoxLayout()
         self.vbox.addWidget(self.p_win)
         self.vbox.addWidget(self.slide_win)
+        self.vbox.addWidget(self.t_win)
         self.vbox.addWidget(self.bond_win)
         self.vbox.addWidget(self.screen_win)
         self.vbox.addWidget(self.l_win)
@@ -715,7 +717,7 @@ class AngleWindow(QtWidgets.QWidget):
         self.setLayout(self.groupbox)
 
     def keyPressEvent(self, QKeyEvent):
-        if QKeyEvent.key() == QtCore.Qt.Key_Return:
+        if QKeyEvent.key() == QtCore.Qt.Key_Return or QKeyEvent.key() == QtCore.Qt.Key_Enter:
             self.camera_change_from_angle()
 
 
@@ -793,6 +795,85 @@ class BondWindow(QtWidgets.QWidget):
             val_err_box.exec_()
 
 
+
+class TranslationWindow(QtWidgets.QWidget):
+    def __init__(self, glwindow, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._camera_angle = 0.0
+        self._glwindow = glwindow  # Uebergabe des glwindow
+        self.initUI()
+        pass
+
+    def initUI(self):
+        self.translationgroup = QtWidgets.QGroupBox("Angle Window")
+
+        self.translationgroup.setTitle("Translation Window")
+        self.translationgroup.setToolTip("These 3 angles allow you to set a specific camera position. While phi and thete\n"
+                                   "depict your camera position, is alpha used to show the rotation of the upvector.\n"
+                                   "Any tripel you enter gives a unique view. ")
+        self.groupbox = QtWidgets.QHBoxLayout()
+        self.groupbox.addWidget(self.translationgroup)
+        self.translationbox = QHBoxLayout()
+
+        self.x_box = QHBoxLayout()
+        self.x_lbl = QLabel()
+        self.x_lbl.setText("X: ")
+        self.x_input = QtWidgets.QLineEdit()
+        self.x_input.setFocusPolicy(Qt.ClickFocus)
+        self.x_input.setFixedSize(70,25)
+        self.x_box.addWidget(self.x_lbl)
+        self.x_box.addWidget(self.x_input)
+        #self.theta_validator = QtGui.QDoubleValidator(-1/2 * math.pi, math.pi/2,5, self)
+        #self.theta_input.setValidator(self.theta_validator)
+        self._glwindow._focus_observer.append(self.x_input.setText)
+
+        self.y_box = QHBoxLayout()
+        self.y_lbl = QLabel()
+        self.y_lbl.setText("Y: ")
+        self.y_input = QtWidgets.QLineEdit()
+        self.y_input.setFocusPolicy(Qt.ClickFocus)
+        self.y_input.setFixedSize(75,25)
+        self.y_box.addWidget(self.y_lbl)
+        self.y_box.addWidget(self.y_input)
+        self._glwindow._focus_observer.append(self.y_input.setText)
+        #self.phi_validator = QtGui.QDoubleValidator(-1* math.pi, math.pi,5, self)
+        #self.phi_input.setValidator(self.phi_validator)
+
+        self.z_box = QHBoxLayout()
+        self.z_lbl = QLabel()
+        self.z_lbl.setText("Z: ")
+        self.z_input = QtWidgets.QLineEdit()
+        self.z_input.setFocusPolicy(Qt.ClickFocus)
+        self.z_input.setFixedSize(75, 25)
+        self.z_box.addWidget(self.z_lbl)
+        self.z_box.addWidget(self.z_input)
+        self._glwindow._focus_observer.append(self.z_input.setText)
+
+        self.translation_button = QPushButton("Translate focus")
+        self.translation_button.setMaximumSize(150, 25)
+        self.translation_button.clicked.connect(self.change_focus_point)
+
+        self.x_input.setText(str(0))
+        self.y_input.setText(str(0))
+        self.z_input.setText(str(0))
+        self.translationbox.addLayout(self.x_box)
+        self.translationbox.addLayout(self.y_box)
+        self.translationbox.addLayout(self.z_box)
+        self.translationbox.addWidget(self.translation_button)
+        self.translationgroup.setLayout(self.translationbox)
+        self.groupbox.setContentsMargins(0,0,0,0)
+        self.setLayout(self.groupbox)
+
+    def keyPressEvent(self, QKeyEvent):
+        if QKeyEvent.key() == QtCore.Qt.Key_Return or QKeyEvent.key() == QtCore.Qt.Key_Enter:
+            self.change_focus_point()
+
+    def change_focus_point(self):
+        spinVis_camera.focus_point = np.array([float(self.x_input.text()), float(self.y_input.text()), float(self.z_input.text())])
+        spinVis_camera.grLookAt()
+        self._glwindow.update()
+
+
 class GLWidget(QtWidgets.QOpenGLWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -823,8 +904,10 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
         self.vid_timer = QtCore.QTimer()
         self.vid_timer.timeout.connect(self.video_connect)
-        self._observers = []
-        self._blocker = []
+        self._angle_observers = []
+        self._angle_blocker = []
+
+        self._focus_observer = []
 
         self._issphere = True
 
@@ -979,7 +1062,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         euler_theta = math.acos((spinVis_coor.camera_koordinates[2] - spinVis_camera.focus_point[2]) / euler_norm)
         euler_phi = np.arctan2(spinVis_coor.camera_koordinates[1] - spinVis_camera.focus_point[1], spinVis_coor.camera_koordinates[0] - spinVis_camera.focus_point[0])
 
-        for observer in self._observers:
+        for observer in self._angle_observers:
 
             if (i == 0):
                 observer.setText(str(round(euler_theta, 5)))
@@ -1032,6 +1115,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.focus_point -= right_vector
         spinVis_coor.camera_koordinates -= right_vector
         spinVis_camera.grLookAt()
+        self.update_translation_win()
         self.update()
 
     def move_left(self):
@@ -1041,19 +1125,27 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.focus_point += right_vector
         spinVis_coor.camera_koordinates += right_vector
         spinVis_camera.grLookAt()
+        self.update_translation_win()
         self.update()
 
     def move_up(self):
         spinVis_camera.focus_point += self.new_up_v
         spinVis_coor.camera_koordinates += self.new_up_v
         spinVis_camera.grLookAt()
+        self.update_translation_win()
         self.update()
 
     def move_down(self):
         spinVis_camera.focus_point -= self.new_up_v
         spinVis_coor.camera_koordinates -= self.new_up_v
         spinVis_camera.grLookAt()
+        self.update_translation_win()
         self.update()
+
+    def update_translation_win(self):
+        self._focus_observer[0](str(round(spinVis_camera.focus_point[0], 4)))
+        self._focus_observer[1](str(round(spinVis_camera.focus_point[1], 4)))
+        self._focus_observer[2](str(round(spinVis_camera.focus_point[2],4)))
 
     def setDataSet(self):
         gr3.clear()  # Loecht die Drawlist vom GR3
@@ -1117,7 +1209,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         pass
 
     def register(self, observer):
-        self._observers.append(observer)
+        self._angle_observers.append(observer)
 
 
     def get_slid_win(self, slidwin):

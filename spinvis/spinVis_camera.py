@@ -365,7 +365,6 @@ def grDrawSpin(xmax, ymax, pixelRatio, is_sphere):
         t3 = float(ele[2])/255
         sphere_rgb_divided.append([t1,t2,t3])
 
-    print(bond_indices)
     if bond_indices is not None:
         gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
                              len(bond_indices) * (0.1 * spin_size,), bond_lengths)
