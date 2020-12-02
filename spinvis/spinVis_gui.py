@@ -30,7 +30,7 @@ class MainWindow(QtWidgets.QWidget):  #Class MainWindow is the overall window, c
         self.gui_window = GUIWindow(
             self.draw_window, self.inputstyle)  #Initialisation of the GUI with the GLWindow as an parameter
         self.draw_window.setMinimumSize(700, 700) #Size 700x700 is the biggest window possible for the laptop display of a MacBook Pro
-        self.gui_window.setFixedSize(550, 700) #The GUI Window gets the same height, but a smaller width
+        self.gui_window.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         self.gui_window.setFocusPolicy(Qt.ClickFocus)
         self.complete_window_hbox = QHBoxLayout()  # Horizontales Layout umd beides nebeneinander zulegen
         self.complete_window_hbox.addWidget(self.draw_window)
@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QWidget):  #Class MainWindow is the overall window, c
 
 
 class GUIWindow(
-    QtWidgets.QWidget):  # GUI Window setzt sich aus einzelnen Windows die vertikal unteieinander gelegt wurden zusammen
+    QtWidgets.QScrollArea):  # GUI Window setzt sich aus einzelnen Windows die vertikal unteieinander gelegt wurden zusammen
     def __init__(self,glwindow, ladestyle, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._camera_angle = 0.0
@@ -81,6 +81,7 @@ class GUIWindow(
         pass
 
     def initUI(self):
+        self.parent_widget = QtWidgets.QWidget()
         self.pgroup = QtWidgets.QGroupBox()
         self.p_win = ProjectionWindow(self._glwindow)
         self.slide_win = AngleWindow(self._glwindow)                           #Slider Boxlayout fuer Kamerasteuerung per Slider
@@ -102,8 +103,10 @@ class GUIWindow(
         self.vbox.addWidget(self.c_win)
         self.vbox.addWidget(self.v_win)
         self.vbox.addStretch(1)
-        self.setLayout(self.vbox)
-        pass
+        self.parent_widget.setLayout(self.vbox)
+        self.setWidget(self.parent_widget)
+        self.setWidgetResizable(True)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
 
 class ProjectionWindow(QtWidgets.QWidget):  #
