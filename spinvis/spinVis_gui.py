@@ -970,7 +970,9 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                           gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
             gr.updatews()
         if self._export_screen:  # Screenshot und setzen von export screen auf False fuer neuen Durchlauf
+            spinVis_camera.grSetUp(1920, 1920)
             spinVis_camera.make_screenshot(self.screendateiname, "png", 1920, 1920)
+            spinVis_camera.grSetUp(self.width(), self.height())
             self._export_screen = False
         gr3.drawimage(0, self.devicePixelRatio() * self.width(), 0, self.devicePixelRatio() * self.height(),
                       self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
