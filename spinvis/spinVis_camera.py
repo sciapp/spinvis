@@ -394,15 +394,6 @@ def save_file():
             print(str(midpoints) + "\t" + str(dirctions) + "\t" + str(symbols), file=f)
         f.close()
 
-def render_povray(povray_filepath, png_filepath=None, block=True):
-    if png_filepath is None:
-        png_filepath = os.path.splitext(povray_filepath)[0] + ".png"
-    process = subprocess.Popen(
-        ["povray", "+W1920", "+H1920", "-D", "+UA", "+A", "+R9", "+Q11", "+O{}".format(png_filepath), povray_filepath]
-    )
-    if block:
-        process.join()
-
 
 def render_povray(povray_filepath, png_filepath=None, block=True):
     if png_filepath is None:
@@ -412,4 +403,3 @@ def render_povray(povray_filepath, png_filepath=None, block=True):
     )
     if block:
         process.join()
-
