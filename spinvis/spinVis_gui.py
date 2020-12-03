@@ -422,7 +422,7 @@ class ColorWindow(QtWidgets.QWidget):
             self._glwindow._issphere = True
 
         self._glwindow.spinDraw()
-        self._glwindow.repaint()
+        self._glwindow.update()
 
 
     def get_bg_color(self):
@@ -956,18 +956,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
                                self.height())  # GrSetup mit Zoomvariable und den Winkeln fuer die Kugelgleichung
 
     def resizeGL(self, width, height):
-        gr3.drawimage(0, self.width(), 0, self.height(),
-                      self.devicePixelRatio() * self.width(), self.devicePixelRatio() * self.height(),
-                      gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
-        if self._make_video:
-            gr.clearws()
-            gr3.drawimage(0, 1, 0, 1,
-                          self.width(), self.height(),
-                          gr3.GR3_Drawable.GR3_DRAWABLE_GKS)
-            gr.updatews()
         spinVis_camera.grSetUp(self.width(), self.height())
-
-        pass
 
     def spinDraw(self):
         spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio(), self._issphere)
@@ -1220,7 +1209,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
             except ValueError:
                 fps_as_int = 60
             self.vid_timer.start(fps_as_int/1000)
-            self.paintGL()
+            self.update()
         else:
             gr.endprint()
             self._make_video = False

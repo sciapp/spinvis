@@ -234,10 +234,6 @@ def args_input(string, height, width, ratio):
     if bond_indices is not None:
         gr3.drawcylindermesh(len(bond_indices), bond_positions, bond_directions, len(bond_indices) * bond_color,
                             len(bond_indices) * (0.1 * spin_size, ), bond_lengths)
-    gr3.drawimage(0, height, 0, width,
-                  height * ratio, width * ratio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
-
-
 
 
 def set_focus_point(val_list):  # Setter Methode für Focus Point
@@ -377,8 +373,6 @@ def grDrawSpin(xmax, ymax, pixelRatio, is_sphere):
     if is_sphere:
 
         gr3.drawspheremesh(len(d),d , sphere_rgb_divided, e*5)
-    gr3.drawimage(0, xmax, 0, ymax,
-                  xmax * pixelRatio, ymax * pixelRatio, gr3.GR3_Drawable.GR3_DRAWABLE_OPENGL)
 
 
 def make_screenshot(name, format, width, height):
