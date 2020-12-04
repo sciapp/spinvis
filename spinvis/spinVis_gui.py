@@ -300,7 +300,8 @@ class SpinColorWindow(QtWidgets.QWidget):
         for e in symbol_list_int:
             self.color_table.setHorizontalHeaderItem(i, QTableWidgetItem(str(e)))
             self.color_table.setItem(0, i, QTableWidgetItem(""))
-            self.color_table.item(0, i).setBackground(QtGui.QColor.fromRgb(int(float(e[0])), int(float(e[1])), int(float(e[2]))))
+            c = spinVis_camera.get_symbol_color(e)
+            self.color_table.item(0, i).setBackground(QtGui.QColor.fromRgb(int(c[0]), int(c[1]), int(c[2])))
             i = i+1
 
     def color_all_spins(self, rgb):
@@ -443,8 +444,6 @@ class ColorWindow(QtWidgets.QWidget):
             spin_rgb[0] = selectedColor.getRgb()[0] / 255
             spin_rgb[1] = selectedColor.getRgb()[1] / 255
             spin_rgb[2] = selectedColor.getRgb()[2] / 255
-            for i in range(len(spinVis_camera.color_of_atom)):
-                spinVis_camera.color_of_atom[i] = [spin_rgb[0], spin_rgb[1], spin_rgb[2]]
             self._glwindow.set_spin_color(selectedColor.getRgb())
 
 class VideoWindow(QtWidgets.QWidget):
@@ -917,7 +916,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
         self._focus_observer = []
 
-        self._issphere = True
+        self._issphere = spinVis_camera.IS_SPHERE_DEFAULT
 
         self.data_path = ""
         self.setAcceptDrops(True)
@@ -959,7 +958,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
         spinVis_camera.grSetUp(self.width(), self.height())
 
     def spinDraw(self):
-        spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio(), self._issphere)
+        spinVis_camera.grDrawSpin(None, self._issphere, skip_colors=True)
 
     def paintGL(self):
         gr3.usecurrentframebuffer()
@@ -1163,13 +1162,12 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def setDataSet(self):
         gr3.clear()  # Loecht die Drawlist vom GR3
-        #spinVis_camera.file_input(self.data_path)  # Speichert die Spins aus der Eingabedatei in die Drawlist
         spinVis_camera.spin_sphere_input(self.data_path)
         spinVis_camera.grSetUp(self.width(), self.height())
         gr3.usecurrentframebuffer()
         spinVis_camera.spin_rgb = [1.00, 1.00, 1.00]
         spinVis_camera.create_color_atoms()
-        spinVis_camera.grDrawSpin(self.width(), self.height(), self.devicePixelRatio(), self._issphere)
+        spinVis_camera.grDrawSpin(None, self._issphere)
         self.repaint()  # Zeichnet die Spins neu
 
     def set_bg_color(self, rgb_color):
@@ -1179,7 +1177,7 @@ class GLWidget(QtWidgets.QOpenGLWidget):
 
     def set_spin_color(self, rgb_color):
         try:
-            spinVis_camera.set_spin_color(rgb_color, self.devicePixelRatio())
+            spinVis_camera.set_symbol_spin_color(rgb_color)
         except TypeError:
             val_err_box = QtWidgets.QMessageBox()
             val_err_box.setIcon(2) #Gives warning Icon
@@ -1241,14 +1239,14 @@ def main():
     QtGui.QSurfaceFormat.setDefaultFormat(format)
     mein = MainWindow(sys.stdin.isatty())  # Initialisierung von mein als Maindwindow, wo sich alles drin abspielt
     mein.show()
-    if not sys.stdin.isatty():
-        spinVis_camera.create_color_atoms()
-        spinVis_camera.args_input(sys.stdin.read(), mein.draw_window.height(), mein.draw_window.width(),
-                                  mein.draw_window.devicePixelRatio())
+    read_data = False
     if len(sys.argv) > 1:
-        spinVis_camera.create_color_atoms()
-        spinVis_camera.file_input(sys.argv[1])
-
+        spinVis_camera.grDrawSpin(sys.argv[1])
+        read_data = True
+    elif not sys.stdin.isatty():
+        spinVis_camera.grDrawSpin(sys.stdin)
+        read_data = True
+    if read_data:
         mein.gui_window.cs_win.fillTable(spinVis_camera.fill_table())
     signal.signal(signal.SIGINT, signal.SIG_DFL)  # Allow <Ctrl-C> to quit the program
     sys.exit(app.exec_())
